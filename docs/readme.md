@@ -50,6 +50,7 @@
 「一元管理」を実現するために必要となる、リレーショナルデータベース（PostgreSQL / Supabaseなど）を想定したテーブル構成です。
 
 ### ① `users` (ユーザー)
+**spt_userを利用するので不要**
 
 * `id`: UUID (Primary Key)
 * `email`: string
