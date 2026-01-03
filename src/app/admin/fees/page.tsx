@@ -1,7 +1,7 @@
+import BrokerList from "@/components/admin/fees/BrokerList";
+import RuleEditor from "@/components/admin/fees/RuleEditor";
 import { createKabuTrailServerClient } from "@/lib/supabaseServer"; // サーバー用クライアント
 import { Database } from "@/types/supabase";
-import BrokerList from "@/app/admin/fees/_components/BrokerList";
-import RuleEditor from "@/app/admin/fees/_components/RuleEditor";
 
 // 型定義を修正：searchParams を Promise でラップする
 export default async function FeeManagementPage(props: {
@@ -32,7 +32,7 @@ export default async function FeeManagementPage(props: {
       fee_templates: templates?.filter((t) => t.broker_id === broker.id) || [],
     })) || [];
 
-  console.log("Merged Brokers:", brokers);
+  // console.log("Merged Brokers:", brokers);
 
   // 2. 選択中のテンプレートがある場合、そのルールを取得
   let rules: Database["public"]["Tables"]["fee_rules"]["Row"][] = [];
@@ -45,6 +45,8 @@ export default async function FeeManagementPage(props: {
       .eq("is_active", true)
       .order("threshold_amount", { ascending: true });
     if (data) rules = data;
+
+    console.log("Fetched Rules for template", selectedTemplateId, rules);
   }
 
   return (
