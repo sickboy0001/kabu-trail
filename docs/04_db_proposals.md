@@ -30,6 +30,7 @@
 * `formal_name`: string (正式名称：松井証券株式会社など)
 * `sort_order`: int (表示順序)
 
+
 #### ② `fee_templates` (手数料パターン定義)
 
 証券会社が提供する標準的な手数料コース（プラン）を定義します。
@@ -78,6 +79,71 @@
 ---
 
 
+```mermaid
+erDiagram
+    %% 証券口座手数料モデル
+    BROKERS ||--o{ FEE_TEMPLATES : "provides"
+    FEE_TEMPLATES ||--o{ FEE_RULES : "has"
+    BROKERS ||--o{ BROKER_ACCOUNTS : "offers"
+    BROKER_ACCOUNTS ||--o{ ACCOUNT_FEE_RULES : "customizes"
+    FEE_TEMPLATES ||--o{ BROKER_ACCOUNTS : "base_template"
+
+    BROKERS {
+        int id PK
+        text name "名前"
+        text formal_name "正式名前"
+        int sort_order "表示順 (小さいほど上、default:0)"
+        timestamptz created_at
+    }
+
+    FEE_TEMPLATES {
+        int id PK
+        int broker_id FK
+        text name "名前"
+        text formal_name "正式名前"
+        text description "説明"
+        int sort_order "表示順 (default:0)"
+        timestamptz created_at
+        text note "UNIQUE (broker_id, name)"
+    }
+
+    FEE_RULES {
+        int id PK
+        int template_id FK
+        decimal threshold_amount "閾値"
+        decimal fee_rate "率(例:0.02(2%) )"
+        decimal fixed_fee "定額"
+        boolean is_daily_sum "日次合算判定"
+        date effective_date "適用開始日"
+        boolean is_active "有効フラグ (default:true)"
+        timestamptz created_at
+    }
+
+    BROKER_ACCOUNTS {
+        int id PK
+        uuid user_id FK
+        int broker_id FK
+        int template_id FK "ベーステンプレート"
+        text name "口座表示名"
+        boolean is_nisa "NISA口座フラグ"
+        boolean use_custom_fee "カスタム手数料を使用 (default:false)"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ACCOUNT_FEE_RULES {
+        int id PK
+        int account_id FK
+        int priority "判定順 (小さいほど優先)"
+        decimal threshold "閾値"
+        decimal fee_rate
+        decimal fixed_fee
+        boolean is_daily "日次フラグ"
+        timestamptz created_at
+    }
+```
+
+
 ### DDL
 
 ```sql
@@ -100,6 +166,37 @@ INSERT INTO brokers (name, formal_name, sort_order) VALUES
 ('野村証券', '野村證券株式会社', 20),
 ('SBI証券', '株式会社SBI証券', 30),
 ('楽天証券', '楽天証券株式会社', 40);
+
+-- ==========================================
+-- マイグレーション: brokers にソフトデリート用カラムを追加する
+-- 概要: 既存データベースに対して論理削除フラグ（is_active）を追加する例。
+-- 実行場所: Supabase SQL Editor や psql などで実行してください。
+-- 注意: 本番環境ではバックアップ・ステージング検証を必ず行ってください。
+-- ==========================================
+
+-- 追加 + 既存データの初期化 + インデックス（オプション）
+BEGIN;
+ALTER TABLE public.brokers ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.brokers ALTER COLUMN is_active SET DEFAULT TRUE;
+UPDATE public.brokers SET is_active = TRUE WHERE is_active IS NULL;
+-- インデックス（is_active でフィルタするクエリが多い場合は追加を検討）
+CREATE INDEX IF NOT EXISTS idx_brokers_is_active ON public.brokers (is_active);
+COMMIT;
+
+-- ロールバック（必要なら）
+-- ALTER TABLE public.brokers DROP COLUMN IF EXISTS is_active;
+
+-- 運用上の注意・チェックリスト:
+-- 1) RLS（Row Level Security）ポリシーを利用している場合、is_active を考慮したポリシー更新が必要になることがあります。
+-- 2) アプリ側の一覧取得クエリに is_active=true のフィルターを追加してください。例:
+--    const { data: brokersRaw } = await supabase
+--      .from("brokers")
+--      .select("*")
+--      .eq("is_active", true)
+--      .order("sort_order", { ascending: true });
+-- 3) 既存のフロントエンド/バックエンドで "非アクティブ" をどう取り扱うか（非表示・ラベル表示・検索対象外等）を決めること。
+
+-- 追加で検討: 物理削除ではなく is_active=false を用いることで履歴保持ができ、誤削除時の復旧が容易になります。
 
 -- ② 手数料パターン定義（テンプレート）
 CREATE TABLE fee_templates (

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import {
   LayoutDashboard,
@@ -36,6 +37,25 @@ export default function Sidebar() {
     router.refresh();
   };
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/is-admin");
+        const json = await res.json();
+        console.log("mounted", mounted);
+        if (mounted) setIsAdmin(Boolean(json?.isAdmin));
+      } catch (err) {
+        console.error("Failed to check admin status", err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <div className="w-64 bg-slate-900 text-slate-300 h-screen flex flex-col fixed left-0 top-0">
       <div className="p-6">
@@ -62,6 +82,23 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        {isAdmin && (
+          <div className="mt-4 pt-4 border-t border-slate-800">
+            <div className="px-4 text-xs text-slate-500 mb-2">管理者</div>
+            <Link
+              href="/admin/fees"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                pathname === "/admin/fees"
+                  ? "bg-blue-600 text-white"
+                  : "hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              <Settings size={20} />
+              証券会社・プラン
+            </Link>
+          </div>
+        )}
       </nav>
 
       <div className="p-4 border-t border-slate-800">

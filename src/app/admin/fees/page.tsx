@@ -49,6 +49,9 @@ export default async function FeeManagementPage(props: {
     console.log("Fetched Rules for template", selectedTemplateId, rules);
   }
 
+  const selectedTemplate =
+    templates?.find((t: any) => String(t.id) === selectedTemplateId) || null;
+
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden">
       {/* 左側：ナビゲーション一覧 */}
@@ -63,6 +66,8 @@ export default async function FeeManagementPage(props: {
           <RuleEditor
             templateId={parseInt(selectedTemplateId)}
             initialRules={rules}
+            templateName={selectedTemplate?.name ?? ""}
+            templateSortOrder={selectedTemplate?.sort_order ?? 0}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-slate-400">
