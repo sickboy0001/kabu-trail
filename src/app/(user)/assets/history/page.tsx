@@ -1,8 +1,8 @@
-import DashboardClient from "@/components/pages/user/dashboard/DashboardClient";
+import AssetsHistoryClient from "@/components/pages/user/assets/history/AssetsHistoryClient";
 import { createKabuTrailServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 
-export default async function DashboardPage() {
+export default async function AssetsHistory() {
   const supabase = await createKabuTrailServerClient();
   const {
     data: { user },
@@ -13,5 +13,5 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  return <DashboardClient user={user} />;
+  return <AssetsHistoryClient user={user} />;
 }

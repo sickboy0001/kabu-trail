@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
 import {
   LayoutDashboard,
   History,
@@ -12,24 +11,31 @@ import {
   Wallet,
   Settings,
   LogOut,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const menuItems = [
   { name: "ダッシュボード", href: "/dashboard", icon: LayoutDashboard },
   { name: "取引登録", href: "/trades/new", icon: PlusCircle },
   { name: "取引履歴", href: "/trades/history", icon: History },
+  { name: "資産推移", href: "/assets/history", icon: TrendingUp },
   { name: "損益推移", href: "/analytics/charts", icon: BarChart3 },
   { name: "カレンダー", href: "/calendar", icon: Calendar },
   { name: "口座管理", href: "/settings/accounts", icon: Wallet },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+}
+
+export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = createClient();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -57,35 +63,46 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <div className="w-64 bg-slate-900 text-slate-300 h-screen flex flex-col fixed left-0 top-0">
-      <div className="p-6">
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <span className="bg-blue-600 p-1 rounded">KT</span> KabuTrail
-        </h1>
+    <div
+      className={`${
+        isOpen ? "w-64" : "w-0 md:w-16"
+      } bg-slate-900 text-slate-300 h-[calc(100vh-64px)] flex flex-col fixed left-0 top-16 transition-all duration-300 z-40 overflow-hidden`}
+    >
+      {/* 開閉ボタン */}
+      <div className="flex justify-end p-2">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+        >
+          {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+        </button>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 px-2 space-y-1 pt-2">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
                 isActive
                   ? "bg-blue-600 text-white"
                   : "hover:bg-slate-800 hover:text-white"
-              }`}
+              } ${!isOpen && "justify-center"}`}
+              title={!isOpen ? item.name : undefined}
             >
               <item.icon size={20} />
-              {item.name}
+              {isOpen && <span className="whitespace-nowrap">{item.name}</span>}
             </Link>
           );
         })}
 
         {isAdmin && (
           <div className="mt-4 pt-4 border-t border-slate-800">
-            <div className="px-4 text-xs text-slate-500 mb-2">管理者</div>
+            {isOpen && (
+              <div className="px-4 text-xs text-slate-500 mb-2">管理者</div>
+            )}
             <Link
               href="/admin/fees"
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
@@ -93,21 +110,26 @@ export default function Sidebar() {
                   ? "bg-blue-600 text-white"
                   : "hover:bg-slate-800 hover:text-white"
               }`}
+              title={!isOpen ? "証券会社・プラン" : undefined}
             >
               <Settings size={20} />
-              証券会社・プラン
+              {isOpen && (
+                <span className="whitespace-nowrap">証券会社・プラン</span>
+              )}
             </Link>
           </div>
         )}
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-2 border-t border-slate-800">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg hover:bg-red-900/30 hover:text-red-400 transition-colors"
+          className={`flex items-center gap-3 px-3 py-3 w-full rounded-lg hover:bg-red-900/30 hover:text-red-400 transition-colors ${
+            !isOpen && "justify-center"
+          }`}
         >
           <LogOut size={20} />
-          ログアウト
+          {isOpen && <span className="whitespace-nowrap">ログアウト</span>}
         </button>
       </div>
     </div>

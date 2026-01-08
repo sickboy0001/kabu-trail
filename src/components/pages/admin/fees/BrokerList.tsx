@@ -21,7 +21,7 @@ import {
   updateBroker,
   countFeeRules,
   deleteFeeTemplate,
-} from "@/app/admin/fees/actions";
+} from "@/services/fee";
 import Toast from "@/components/ui/Toast";
 
 export default function BrokerList({ brokers, selectedId }: any) {

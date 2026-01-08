@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Save, History, Edit } from "lucide-react";
-import { saveFeeRules, updateFeeTemplate } from "@/app/admin/fees/actions";
+import { Plus, Trash2, History, Edit } from "lucide-react";
+import { saveFeeRules, updateFeeTemplate } from "@/services/fee";
 import { useRouter } from "next/navigation";
 import Toast from "@/components/ui/Toast";
 
@@ -65,49 +65,58 @@ export default function RuleEditor({
     setRules(initialRules || []);
   }, [initialRules, templateId]);
 
-  const addRow = () => {
+  const saveRulesToBackend = async (
+    currentRules: any[],
+    successMessage: string = "保存しました"
+  ) => {
+    if (!templateId) return;
+    setIsSaving(true);
+    try {
+      // fee_rate は UI で % 表示しているので Decimal に戻す
+      const payload = currentRules.map((r: any) => ({
+        ...r,
+        fee_rate:
+          typeof r.fee_rate === "number" ? r.fee_rate : Number(r.fee_rate),
+      }));
+
+      await saveFeeRules(Number(templateId), payload);
+      showToast(successMessage, "success");
+    } catch (err: any) {
+      console.error(err);
+      showToast("保存に失敗しました: " + (err?.message || "Unknown"), "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addRow = async () => {
     const newRow = {
       id: Math.random(), // 仮のID
-      threshold_amount: 0,
+      threshold_amount: 99999999,
       fee_rate: 0,
       fixed_fee: 0,
       is_daily_sum: false,
     };
-    setRules((prev: any[]) => [...prev, newRow]);
+    const newRules = [...rules, newRow];
+    setRules(newRules);
+    await saveRulesToBackend(newRules, "ルールを追加しました");
   };
 
-  const updateRule = (index: number, update: any) => {
-    setRules((prev: any[]) =>
-      prev.map((r, i) => (i === index ? { ...r, ...update } : r))
+  const updateRule = async (index: number, update: any) => {
+    const newRules = rules.map((r: any, i: number) =>
+      i === index ? { ...r, ...update } : r
     );
+    setRules(newRules);
+    await saveRulesToBackend(newRules);
   };
 
-  const removeRule = (idOrIndex: number) => {
-    console.log("removeRule called with", idOrIndex);
-    setRules((prev: any[]) => {
-      // まず id による削除を試みる
-      const removedById = prev.filter((r) => r.id !== idOrIndex);
-      if (removedById.length !== prev.length) {
-        console.log(
-          "removeRule: removed by id",
-          idOrIndex,
-          "remaining:",
-          removedById.length
-        );
-        showToast("ルールを削除しました", "info");
-        return removedById;
-      }
-      // id マッチがなければ index として削除
-      const removedByIndex = prev.filter((_, i) => i !== idOrIndex);
-      console.log(
-        "removeRule: removed by index",
-        idOrIndex,
-        "remaining:",
-        removedByIndex.length
-      );
-      showToast("ルールを削除しました", "info");
-      return removedByIndex;
-    });
+  const removeRule = async (idOrIndex: number) => {
+    let newRules = rules.filter((r: any) => r.id !== idOrIndex);
+    if (newRules.length === rules.length) {
+      newRules = rules.filter((_: any, i: number) => i !== idOrIndex);
+    }
+    setRules(newRules);
+    await saveRulesToBackend(newRules, "ルールを削除しました");
   };
 
   const showToast = (
@@ -117,32 +126,6 @@ export default function RuleEditor({
     setToastMessage(message);
     setToastType(type);
     setToastOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!templateId) {
-      showToast("Template ID が必要です", "error");
-      return;
-    }
-    setIsSaving(true);
-    try {
-      // fee_rate は UI で % 表示しているので Decimal に戻す
-      console.log("handleSave: current rules before save", rules);
-      const payload = rules.map((r: any) => ({
-        ...r,
-        fee_rate:
-          typeof r.fee_rate === "number" ? r.fee_rate : Number(r.fee_rate),
-      }));
-
-      console.log("handleSave: payload", payload);
-      await saveFeeRules(Number(templateId), payload);
-      showToast("保存しました", "success");
-    } catch (err: any) {
-      console.error(err);
-      showToast("保存に失敗しました: " + (err?.message || "Unknown"), "error");
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   return (
@@ -240,15 +223,6 @@ export default function RuleEditor({
           <button className="flex items-center gap-2 px-4 py-2 border rounded hover:bg-slate-50 text-sm">
             <History className="w-4 h-4" /> 履歴
           </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`flex items-center gap-2 px-4 py-2 ${
-              isSaving ? "opacity-60" : "bg-blue-600 hover:bg-blue-700"
-            } text-white rounded text-sm font-medium`}
-          >
-            <Save className="w-4 h-4" /> {isSaving ? "保存中..." : "設定を保存"}
-          </button>
         </div>
       </div>
 
@@ -292,6 +266,7 @@ export default function RuleEditor({
                         <input
                           autoFocus
                           type="number"
+                          onFocus={(e) => e.target.select()}
                           value={editingThresholdValue}
                           onChange={(e) =>
                             setEditingThresholdValue(e.target.value)
@@ -307,6 +282,16 @@ export default function RuleEditor({
                               const val = Number(editingThresholdValue) || 0;
                               updateRule(index, { threshold_amount: val });
                               setEditingThresholdIndex(null);
+                            } else if (e.key === "Tab" && !e.shiftKey) {
+                              e.preventDefault();
+                              const val = Number(editingThresholdValue) || 0;
+                              updateRule(index, { threshold_amount: val });
+                              setEditingThresholdIndex(null);
+                              // 手数料率へ移動
+                              setEditingFeeRateIndex(index);
+                              setEditingFeeRateValue(
+                                String((rule.fee_rate ?? 0) * 100)
+                              );
                             } else if (e.key === "Escape") {
                               setEditingThresholdIndex(null);
                             }
@@ -335,6 +320,7 @@ export default function RuleEditor({
                           autoFocus
                           type="number"
                           step="0.001"
+                          onFocus={(e) => e.target.select()}
                           value={editingFeeRateValue}
                           onChange={(e) =>
                             setEditingFeeRateValue(e.target.value)
@@ -349,6 +335,16 @@ export default function RuleEditor({
                               const val = Number(editingFeeRateValue) || 0;
                               updateRule(index, { fee_rate: val / 100 });
                               setEditingFeeRateIndex(null);
+                            } else if (e.key === "Tab" && !e.shiftKey) {
+                              e.preventDefault();
+                              const val = Number(editingFeeRateValue) || 0;
+                              updateRule(index, { fee_rate: val / 100 });
+                              setEditingFeeRateIndex(null);
+                              // 固定額へ移動
+                              setEditingFixedFeeIndex(index);
+                              setEditingFixedFeeValue(
+                                String(rule.fixed_fee ?? 0)
+                              );
                             } else if (e.key === "Escape") {
                               setEditingFeeRateIndex(null);
                             }
@@ -376,6 +372,7 @@ export default function RuleEditor({
                         <input
                           autoFocus
                           type="number"
+                          onFocus={(e) => e.target.select()}
                           value={editingFixedFeeValue}
                           onChange={(e) =>
                             setEditingFixedFeeValue(e.target.value)
@@ -456,6 +453,7 @@ export default function RuleEditor({
           💡 <b>ヒント:</b> 「閾値」は判定を行う上限金額です。例えば 1,000,000
           と入力すると、100万円以下の取引にその利率が適用されます。
           最も大きい数値（例：999,999,999）を設定した行が「それ以上」のルールとして機能します。
+          なお、手数料（固定額）は税込金額で登録してください。
         </p>
       </div>
 

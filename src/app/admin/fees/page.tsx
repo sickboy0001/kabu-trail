@@ -1,5 +1,5 @@
-import BrokerList from "@/components/admin/fees/BrokerList";
-import RuleEditor from "@/components/admin/fees/RuleEditor";
+import BrokerList from "@/components/pages/admin/fees/BrokerList";
+import RuleEditor from "@/components/pages/admin/fees/RuleEditor";
 import { createKabuTrailServerClient } from "@/lib/supabaseServer"; // サーバー用クライアント
 import { Database } from "@/types/supabase";
 

@@ -7,6 +7,11 @@
 
 本システムでは、ユーザーごとに異なる「証券会社」「口座区分（NISA等）」「手数料体系」を柔軟に管理できる構造を採用します。特に複雑な証券会社の手数料体系を正確にシミュレーションするため、「標準マスタ」と「個別スナップショット」を切り替えるハイブリッド方式で設計します。
 
+### 設計時のルール
+* システム更新の難易度を下げるため外部参照は行わないものとする。
+* RLSは利用しないものとする。利用する際の留意点が複雑のため
+* 権限の付与として、authenticated anonに対して、権限の付与が必要（select update insert delete）
+
 ### 手数料管理の柔軟性
 
 * **多対多の口座紐付け**: 1人のユーザーに対して複数の証券口座（松井、野村等）を紐付け可能。
@@ -63,9 +68,11 @@
 * `id`: int (PK)
 * `user_id`: UUID (FK)
 * `broker_id`: int (FK: 松井、野村など)
+* `name`: text (口座の表示名。ユーザーが自由に設定。例：「メイン口座」「NISA用」)
 * `template_id`: int (FK: ベースとなるパターン。カスタマイズ後も「元は何だったか」の参照として保持)
 * `is_nisa`: boolean
 * **`use_custom_fee`**: boolean (初期値: `false`)
+* `sort_order`: int (表示順。ユーザーごとに設定。小さいほど上)
 
 #### ② `account_fee_rules` (個別口座専用ルール)
 
@@ -127,6 +134,7 @@ erDiagram
         text name "口座表示名"
         boolean is_nisa "NISA口座フラグ"
         boolean use_custom_fee "カスタム手数料を使用 (default:false)"
+        int sort_order "表示順 (user_id単位, default:0)"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -233,14 +241,18 @@ CREATE TABLE fee_rules (
 -- ==========================================
 
 -- ④ 証券口座（ユーザー紐付け）
+-- drop table broker_accounts 
 CREATE TABLE broker_accounts (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL, -- auth.users(id)相当だが制約は外しています
     broker_id INTEGER,
+    name TEXT,                         -- 口座の表示名（例: メイン口座、NISA用）
     template_id INTEGER,
     is_nisa BOOLEAN DEFAULT FALSE,
     use_custom_fee BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    sort_order INTEGER DEFAULT 0,      -- 表示順（ユーザー単位で利用）
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ⑤ 個別口座専用ルール（スナップショット用）
@@ -255,5 +267,14 @@ CREATE TABLE account_fee_rules (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- RLSを無効化して、APIキーを持つすべてのクライアントからのアクセスを許可する
+ALTER TABLE broker_accounts DISABLE ROW LEVEL SECURITY;
+
+ALTER TABLE brokers DISABLE ROW LEVEL SECURITY;
+
+-- 権限の付与 authenticated anon
+GRANT ALL ON TABLE broker_accounts TO authenticated
+
+GRANT SELECT,UPDATE,INSERT,DELETE ON TABLE broker_accounts TO anon
 
 ```

@@ -26,17 +26,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* ナビバー */}
-      <nav className="flex justify-between items-center p-6 bg-white border-b">
-        <h1 className="text-xl font-bold text-blue-600">KabuTrail</h1>
-        <Link
-          href="/login"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          ログインして管理を始める
-        </Link>
-      </nav>
-
       <main className="max-w-4xl mx-auto py-12 px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">マーケット概況</h2>
