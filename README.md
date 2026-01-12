@@ -99,9 +99,6 @@ npm run dev
 
 Personal Project - KabuTrail
 
-```
-
----
 
 ### 反映方法
 
@@ -115,7 +112,9 @@ git push origin main
 
 ```
 
-これで GitHub のトップページに、しっかりとしたプロジェクト説明が表示されるようになります！
+## Deploy
+[Vercel](https://kabu-trail.vercel.app/)
+[Github](https://github.com/sickboy0001/kabu-trail)
 
 
 
