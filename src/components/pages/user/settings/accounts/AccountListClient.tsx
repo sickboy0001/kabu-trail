@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 // import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import {
   deleteAccount,
+  getAccountListDisplayData,
   insertAccount,
   updateAccount,
 } from "@/services/account";
-
 type FeeRule = {
   id: number;
   threshold_amount: number;
@@ -35,12 +35,11 @@ type Account = {
   broker_id: number | null;
   template_id?: number | null;
   sort_order: number;
+  category?: string | null;
   brokers: { name: string } | { name: string }[] | null;
 };
 
 type Props = {
-  initialAccounts: Account[];
-  brokers: Broker[];
   userId: string;
 };
 
@@ -61,14 +60,39 @@ const formatFeeRules = (rules: FeeRule[]) => {
     .join(" / ");
 };
 
-export default function AccountListClient({
-  initialAccounts,
-  brokers,
-  userId,
-}: Props) {
+export default function AccountListClient({ userId }: Props) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // データ管理用State
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [brokers, setBrokers] = useState<Broker[]>([]);
+
+  // データ取得関数
+  const fetchAccountsData = useCallback(async () => {
+    try {
+      const data = await getAccountListDisplayData(userId);
+      if (data.brokers) setBrokers(data.brokers as Broker[]);
+      if (data.accounts) setAccounts(data.accounts as Account[]);
+      // console.log("Fetched accounts data:", data.accounts);
+    } catch (error) {
+      console.error("Failed to fetch accounts data:", error);
+    }
+  }, [userId]);
+
+  // 初回データ取得
+  useEffect(() => {
+    fetchAccountsData();
+  }, [fetchAccountsData]);
+
+  // 既存のアカウントリストからユニークなカテゴリ候補を抽出
+  const categoryOptions = useMemo(() => {
+    const categories = accounts
+      .map((account) => account.category)
+      .filter((c): c is string => !!c && c.trim() !== "");
+    return Array.from(new Set(categories)).sort();
+  }, [accounts]);
 
   // フォームの状態
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -76,6 +100,7 @@ export default function AccountListClient({
     broker_id: "",
     name: "",
     is_nisa: false,
+    category: "",
     template_id: "",
   });
 
@@ -87,6 +112,7 @@ export default function AccountListClient({
         broker_id: account.broker_id?.toString() || "",
         name: account.name || "",
         is_nisa: account.is_nisa,
+        category: account.category || "",
         template_id: account.template_id?.toString() || "",
       });
     } else {
@@ -95,6 +121,7 @@ export default function AccountListClient({
         broker_id: "",
         name: "",
         is_nisa: false,
+        category: "",
         template_id: "",
       });
     }
@@ -115,6 +142,8 @@ export default function AccountListClient({
         broker_id: parseInt(formData.broker_id),
         name: formData.name,
         is_nisa: formData.is_nisa,
+        category:
+          formData.category.trim() === "" ? null : formData.category.trim(),
         template_id: formData.template_id
           ? parseInt(formData.template_id)
           : null,
@@ -125,16 +154,17 @@ export default function AccountListClient({
         await updateAccount(editingAccount.id, payload);
       } else {
         // 新規作成
-        // 既存の最小値を取得して、それより小さい値を設定（一番上に追加）
-        const currentOrders = initialAccounts.map((a) => a.sort_order);
-        const minOrder =
-          currentOrders.length > 0 ? Math.min(...currentOrders) : 0;
-        // 余裕を持って -10 する
-        await insertAccount({ ...payload, sort_order: minOrder - 10 });
+        // 既存の最大値を取得して、+1 する（一番下に追加）
+        const currentOrders = accounts.map((a) => a.sort_order);
+        const maxOrder =
+          currentOrders.length > 0 ? Math.max(...currentOrders) : 0;
+        // リストが空なら1、そうでなければ最大値+1
+        await insertAccount({ ...payload, sort_order: maxOrder + 1 });
       }
 
       setIsModalOpen(false);
       router.refresh(); // サーバーコンポーネントを再取得して画面更新
+      await fetchAccountsData();
     } catch (e: any) {
       console.error("Error saving account:", e);
       alert("保存に失敗しました: " + e.message);
@@ -150,6 +180,7 @@ export default function AccountListClient({
     setIsLoading(true);
     try {
       await deleteAccount(id);
+      await fetchAccountsData(); // データを再取得
       router.refresh();
     } catch (e: any) {
       console.error("Error deleting account:", e);
@@ -163,19 +194,32 @@ export default function AccountListClient({
   const handleMove = async (index: number, direction: "up" | "down") => {
     if (isLoading) return;
 
-    const targetAccount = initialAccounts[index];
+    // 移動後の配列順序を作成
+    const newAccounts = [...accounts];
     const swapIndex = direction === "up" ? index - 1 : index + 1;
-    const swapAccount = initialAccounts[swapIndex];
 
-    if (!targetAccount || !swapAccount) return;
+    if (swapIndex < 0 || swapIndex >= newAccounts.length) return;
+
+    // 配列内で要素を入れ替え
+    [newAccounts[index], newAccounts[swapIndex]] = [
+      newAccounts[swapIndex],
+      newAccounts[index],
+    ];
 
     setIsLoading(true);
     try {
-      // sort_orderを入れ替える
-      await Promise.all([
-        updateAccount(targetAccount.id, { sort_order: swapAccount.sort_order }),
-        updateAccount(swapAccount.id, { sort_order: targetAccount.sort_order }),
-      ]);
+      // 全てのアイテムに対して、新しい順序で連番(1, 2, 3...)を振り直して更新
+      const updates = newAccounts.map((acc, idx) => {
+        const newSortOrder = idx + 1;
+        // 値が変わる場合のみ更新リクエストを送る
+        if (acc.sort_order !== newSortOrder) {
+          return updateAccount(acc.id, { sort_order: newSortOrder });
+        }
+        return Promise.resolve();
+      });
+
+      await Promise.all(updates);
+      await fetchAccountsData(); // データを再取得
       router.refresh();
     } catch (e: any) {
       console.error("Error moving account:", e);
@@ -207,8 +251,8 @@ export default function AccountListClient({
           <h2 className="text-lg font-semibold">登録済み口座一覧</h2>
         </div>
         <ul className="divide-y divide-slate-200">
-          {initialAccounts && initialAccounts.length > 0 ? (
-            initialAccounts.map((account, index) => {
+          {accounts && accounts.length > 0 ? (
+            accounts.map((account, index) => {
               // 紐付いている手数料プラン情報を取得
               const broker = brokers.find((b) => b.id === account.broker_id);
               const template = broker?.fee_templates?.find(
@@ -223,6 +267,11 @@ export default function AccountListClient({
                       {account.is_nisa && (
                         <span className="ml-2 text-xs font-medium bg-green-100 text-green-800 px-2 py-1 rounded-full">
                           NISA
+                        </span>
+                      )}
+                      {account.category && (
+                        <span className="ml-2 text-xs font-medium bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+                          {account.category}
                         </span>
                       )}
                     </p>
@@ -250,9 +299,7 @@ export default function AccountListClient({
                         </button>
                         <button
                           onClick={() => handleMove(index, "down")}
-                          disabled={
-                            index === initialAccounts.length - 1 || isLoading
-                          }
+                          disabled={index === accounts.length - 1 || isLoading}
                           className="p-1 text-slate-400 hover:text-blue-600 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                           title="下に移動"
                         >
@@ -288,9 +335,7 @@ export default function AccountListClient({
                   </div>
                   <div>
                     <p className="text-sm text-slate-500">
-                      {(Array.isArray(account.brokers)
-                        ? account.brokers[0]?.name
-                        : account.brokers?.name) || "証券会社情報なし"}
+                      {broker?.name || "証券会社情報なし"}
                     </p>
                     {template && (
                       <p className="text-xs text-slate-500 mt-1">
@@ -357,6 +402,30 @@ export default function AccountListClient({
                     setFormData({ ...formData, name: e.target.value })
                   }
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  カテゴリ
+                </label>
+                <input
+                  type="text"
+                  list="category-options"
+                  className="w-full border border-slate-300 rounded-md p-2"
+                  placeholder="未指定（自由入力可）"
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                />
+                <datalist id="category-options">
+                  {categoryOptions.map((cat) => (
+                    <option key={cat} value={cat} />
+                  ))}
+                </datalist>
+                <p className="text-xs text-slate-500 mt-1">
+                  ※カテゴリを指定すると、特殊な口座として集計対象外になります。
+                </p>
               </div>
 
               {/* 手数料プラン選択 */}

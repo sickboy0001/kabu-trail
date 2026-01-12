@@ -7,8 +7,8 @@ export const createKabuTrailServerClient = async () => {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // 以下の2行を一時的に追加して、ターミナルに値が出るか確認
-  console.log("URL Check:", supabaseUrl);
-  console.log("Key Check:", supabaseAnonKey ? "Key exists" : "Key is missing");
+  // console.log("URL Check:", supabaseUrl);
+  // console.log("Key Check:", supabaseAnonKey ? "Key exists" : "Key is missing");
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error("Supabase URL or Key is missing in environment variables");

@@ -5,24 +5,30 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   History,
-  PlusCircle,
-  BarChart3,
+  ArrowLeftRight,
+  TrendingUp,
+  LineChart,
+  SearchCode,
   Calendar,
   Wallet,
-  Settings,
-  LogOut,
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
+  Settings,
+  LogOut,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const menuItems = [
   { name: "ダッシュボード", href: "/dashboard", icon: LayoutDashboard },
-  { name: "取引登録", href: "/trades/new", icon: PlusCircle },
-  { name: "取引履歴", href: "/trades/history", icon: History },
-  { name: "資産推移", href: "/assets/history", icon: TrendingUp },
-  { name: "損益推移", href: "/analytics/charts", icon: BarChart3 },
+  { name: "取引履歴", href: "/cashflows", icon: History },
+  // 証券売買: 売り買いの交換をイメージ
+  { name: "証券売買", href: "/positions", icon: ArrowLeftRight },
+  // 損益推移: 右肩上がりの利益をイメージ
+  { name: "損益推移", href: "/performance", icon: TrendingUp },
+  // 資産推移: 資産全体の残高・チャートをイメージ
+  { name: "資産推移", href: "/assets", icon: LineChart },
+  // 監視メモ: 観察(Search)と記録をイメージ
+  { name: "監視メモ", href: "/observation_logs", icon: SearchCode },
   { name: "カレンダー", href: "/calendar", icon: Calendar },
   { name: "口座管理", href: "/settings/accounts", icon: Wallet },
 ];

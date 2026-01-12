@@ -1,3 +1,16 @@
+- [2. データベース・テーブル設計案](#2-データベーステーブル設計案)
+  - [概要](#概要)
+  - [設計時のルール](#設計時のルール)
+  - [手数料管理の柔軟性](#手数料管理の柔軟性)
+  - [修正・追加後のデータベース設計案](#修正追加後のデータベース設計案)
+    - [① `brokers` (証券会社マスタ)](#-brokers-証券会社マスタ)
+    - [② `fee_templates` (手数料パターン定義)](#-fee_templates-手数料パターン定義)
+    - [③ `fee_rules` (手数料計算ルール詳細)](#-fee_rules-手数料計算ルール詳細)
+    - [① `broker_accounts` (証券口座)](#-broker_accounts-証券口座)
+    - [② `account_fee_rules` (個別口座専用ルール)](#-account_fee_rules-個別口座専用ルール)
+    - [③ `observation_logs` (トレード観察ログ)](#-observation_logs-トレード観察ログ)
+  - [DDL](#ddl)
+
 
 ## 2. データベース・テーブル設計案
 
@@ -72,6 +85,7 @@
 * `template_id`: int (FK: ベースとなるパターン。カスタマイズ後も「元は何だったか」の参照として保持)
 * `is_nisa`: boolean
 * **`use_custom_fee`**: boolean (初期値: `false`)
+* `category`: text (カテゴリ。NULL: 未指定(通常)、値あり: 特殊口座として集計対象外)
 * `sort_order`: int (表示順。ユーザーごとに設定。小さいほど上)
 
 #### ② `account_fee_rules` (個別口座専用ルール)
@@ -82,7 +96,19 @@
 * `threshold`: decimal (閾値: 100万など)
 * `fee_rate`: decimal (率: 0.009 = 0.9%)
 * `is_daily`: boolean (1日の合計額判定か)
-* 
+
+#### ③ `observation_logs` (トレード観察ログ)
+
+日々のトレードの振り返りや市場の観察記録を保存します。
+
+* `id`: int (PK)
+* `user_id`: UUID (FK)
+* `date`: date (記録日)
+* `content`: text (内容)
+* `stocks`: text[] (関連銘柄コード配列)
+* `tags`: text[] (タグ配列)
+* `is_active`: boolean (有効フラグ)
+
 ---
 
 
@@ -134,6 +160,7 @@ erDiagram
         text name "口座表示名"
         boolean is_nisa "NISA口座フラグ"
         boolean use_custom_fee "カスタム手数料を使用 (default:false)"
+        text category "カテゴリ (NULL:通常, 値あり:特殊/集計外)"
         int sort_order "表示順 (user_id単位, default:0)"
         timestamptz created_at
         timestamptz updated_at
@@ -250,6 +277,7 @@ CREATE TABLE broker_accounts (
     template_id INTEGER,
     is_nisa BOOLEAN DEFAULT FALSE,
     use_custom_fee BOOLEAN DEFAULT FALSE,
+    category TEXT DEFAULT NULL,        -- カテゴリ（NULL: 未指定/通常、値あり: 特殊口座/集計対象外）
     sort_order INTEGER DEFAULT 0,      -- 表示順（ユーザー単位で利用）
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -267,14 +295,31 @@ CREATE TABLE account_fee_rules (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLSを無効化して、APIキーを持つすべてのクライアントからのアクセスを許可する
+-- ⑥ トレード観察ログ
+CREATE TABLE observation_logs (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL,
+    date DATE NOT NULL,
+    content TEXT,
+    stocks TEXT[] DEFAULT '{}',
+    tags TEXT[] DEFAULT '{}',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE observation_logs DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE observation_logs TO authenticated;
+GRANT SELECT,UPDATE,INSERT,DELETE ON TABLE observation_logs TO anon;
+
 ALTER TABLE broker_accounts DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE broker_accounts TO authenticated
+GRANT SELECT,UPDATE,INSERT,DELETE ON TABLE broker_accounts TO anon;
 
 ALTER TABLE brokers DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE brokers TO authenticated
+GRANT SELECT,UPDATE,INSERT,DELETE ON TABLE brokers TO anon;
 
--- 権限の付与 authenticated anon
-GRANT ALL ON TABLE broker_accounts TO authenticated
 
-GRANT SELECT,UPDATE,INSERT,DELETE ON TABLE broker_accounts TO anon
 
 ```

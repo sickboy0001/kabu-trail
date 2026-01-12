@@ -1,7 +1,6 @@
 import { createKabuTrailServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 import AccountListClient from "@/components/pages/user/settings/accounts/AccountListClient";
-import { getAccountListDisplayData } from "@/services/account-server";
 
 export default async function AccountPage() {
   const supabaseServer = await createKabuTrailServerClient();
@@ -14,10 +13,10 @@ export default async function AccountPage() {
     redirect("/login");
   }
 
-  const { brokers, accounts } = await getAccountListDisplayData(
-    supabaseServer,
-    user.id
-  );
+  // const { brokers, accounts } = await getAccountListDisplayData(
+  //   supabaseServer,
+  //   user.id
+  // );
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -29,8 +28,8 @@ export default async function AccountPage() {
       </div>
 
       <AccountListClient
-        initialAccounts={accounts || []}
-        brokers={brokers || []}
+        // initialAccounts={accounts || []}
+        // brokers={brokers || []}
         userId={user.id}
       />
     </div>

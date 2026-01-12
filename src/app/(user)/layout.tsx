@@ -40,7 +40,7 @@ export default function UserLayout({
           isSidebarOpen ? "md:ml-64" : "md:ml-16"
         }`}
       >
-        <div className="max-w-6xl mx-auto">{children}</div>
+        <div className="max-w-full mx-auto">{children}</div>
       </main>
     </div>
   );

@@ -1,4 +1,4 @@
-[Top](./README.md)
+[Top](../../readme.md)
 
 # データ設計（外部的な観点）
 
@@ -205,7 +205,7 @@ CREATE TABLE spt_daily_quotes (
 
 
 importjpx01.html：
-[その他統計資料](https://www.jpx.co.jp/markets/statistics-equities/misc/01.html)のXmlから取得する。
+その他統計資料のXmlから取得する。
 そこから、Xmlを開いて、全選択して、インポート画面へコピー
 
 
@@ -239,6 +239,3 @@ importjpx01.html：
 #### get_users_with_roles_and_status
 - public.get_users_with_roles_and_status(): ユーザー一覧と役割情報を取得
 - 管理画面表示用に、ユーザー名、メール、役割、ステータスでフィルタリングし、ページネーションも考慮
-  
-
-

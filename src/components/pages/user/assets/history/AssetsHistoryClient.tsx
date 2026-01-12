@@ -333,107 +333,19 @@ export default function AccountListClient({ user }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-800">入出金・取引履歴</h1>
+        <h1 className="text-2xl font-bold text-slate-800">資産推移</h1>
       </div>
-
-      {/* PC版: テーブル表示 (md以上で表示) */}
-      <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow">
-        <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
-          <thead className="bg-slate-50 border-b">
-            <tr>
-              <th className="p-4">約定日</th>
-              <th className="p-4">受渡日</th>
-              <th className="p-4">商品</th>
-              <th className="p-4">銘柄/摘要</th>
-              <th className="p-4">取引区分</th>
-              <th className="p-4 text-right">数量</th>
-              <th className="p-4 text-right">単価</th>
-              <th className="p-4 text-right">受渡金額/決済損益</th>
-              <th className="p-4 text-right">手数料(税込)</th>
-              <th className="p-4 text-right">売買損益(円)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((t) => (
-              <tr key={t.id} className="border-b hover:bg-slate-50">
-                <td className="p-4">{t.date}</td>
-                <td className="p-4">{t.settlementDate}</td>
-                <td className="p-4">{t.product}</td>
-                <td className="p-4 font-medium">{t.name}</td>
-                <td className="p-4">{t.type}</td>
-                <td className="p-4 text-right font-mono">{t.quantity}</td>
-                <td className="p-4 text-right font-mono">{t.unitPrice}</td>
-                <td className="p-4 text-right font-mono">
-                  {t.amount !== "--" ? `¥${t.amount}` : "--"}
-                </td>
-                <td className="p-4 text-right font-mono">{t.commission}</td>
-                <td
-                  className={`p-4 text-right font-mono ${
-                    t.profit.startsWith("+")
-                      ? "text-green-600"
-                      : t.profit.startsWith("-")
-                      ? "text-red-600"
-                      : ""
-                  }`}
-                >
-                  {t.profit}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div>
+        この表は「現金の動き（キャッシュフロー）」を追うのに適しています。
+        <p>取引の連鎖:</p>
+        12/18の川崎重工業の売却益を原資にライトアップを購入し、さらに12/23にはゲオの売却益と合わせてソフトバンクを購入…といった、資産の「入れ替え」の流れが明確です。
+        <p>残高の管理:</p>
+        右端の「残高」列を見ることで、常に買い付け余力がいくらあるのかがリアルタイムで把握できています。
+        <p>税金の意識:</p>
+        「譲渡益税源泉徴収金」がマイナス表記されているため、利益に対して約20%の税金が引かれた後の**「真の純増額」**が計算されています。
       </div>
-
-      {/* スマホ版 (Pixel 8など): カード形式表示 (md未満で表示) */}
-      <div className="md:hidden space-y-3">
-        {transactions.map((t) => (
-          <div
-            key={t.id}
-            className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500"
-          >
-            <div className="flex justify-between text-sm text-slate-500">
-              <span>{t.date}</span>
-              <span className="font-bold text-blue-600">{t.type}</span>
-            </div>
-            <div className="mt-2 font-bold">{t.name}</div>
-            <div className="mt-1 text-right text-lg font-mono">
-              {t.amount !== "--" ? `¥${t.amount}` : "--"}
-            </div>
-            {t.profit !== "--" && (
-              <div className="mt-1 text-right text-sm">
-                <span className="text-slate-500 mr-2">売買損益:</span>
-                <span
-                  className={`font-mono ${
-                    t.profit.startsWith("+") ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {t.profit}
-                </span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
       {/* 金銭残高明細 */}
       <div className="space-y-4 pt-8 border-t border-slate-200">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-xl font-bold text-slate-800">金銭残高明細</h2>
-          <div className="relative w-full sm:w-64">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
-              size={18}
-            />
-            <input
-              type="text"
-              placeholder="日付・摘要で検索"
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
         {/* PC版: テーブル表示 */}
         <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow">
           <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
@@ -513,72 +425,6 @@ export default function AccountListClient({ user }: Props) {
               })}
             </tbody>
           </table>
-        </div>
-
-        {/* スマホ版: カード形式表示 */}
-        <div className="md:hidden space-y-3">
-          {filteredCashBalanceHistory.map((item, index) => {
-            const current = parseBalance(item.balanceMRF);
-            const prev =
-              index > 0
-                ? parseBalance(filteredCashBalanceHistory[index - 1].balanceMRF)
-                : null;
-            let trend = null;
-            if (current !== null && prev !== null) {
-              if (current > prev) trend = "up";
-              if (current < prev) trend = "down";
-            }
-
-            return (
-              <div
-                key={item.id}
-                className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-slate-400"
-              >
-                <div className="flex justify-between text-sm text-slate-500">
-                  <span>{item.settlementDate || "繰越"}</span>
-                  <span className="font-bold text-slate-700">{item.type}</span>
-                </div>
-                <div className="mt-2 font-bold">{item.description}</div>
-                {item.amount && (
-                  <div
-                    className={`mt-1 text-right text-lg font-mono ${
-                      item.amount.startsWith("+")
-                        ? "text-green-600"
-                        : item.amount.startsWith("-")
-                        ? "text-red-600"
-                        : ""
-                    }`}
-                  >
-                    {item.amount}
-                  </div>
-                )}
-                {item.balanceMRF !== "--" && (
-                  <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between text-sm">
-                    <span className="text-slate-500">残高</span>
-                    <div className="flex items-center gap-1">
-                      {trend === "up" && (
-                        <ArrowUp size={14} className="text-green-600" />
-                      )}
-                      {trend === "down" && (
-                        <ArrowDown size={14} className="text-red-600" />
-                      )}
-                      <span
-                        className={`font-mono ${
-                          trend === "up"
-                            ? "text-green-600"
-                            : trend === "down"
-                            ? "text-red-600"
-                            : ""
-                        }`}
-                      >
-                        {item.balanceMRF}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>

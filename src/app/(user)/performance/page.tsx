@@ -1,6 +1,7 @@
 import { createKabuTrailServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
-import { getAccountListDisplayData } from "@/services/account-server";
+// import { getAccountListDisplayData } from "@/services/account-server";
+import PerformanceClient from "@/components/pages/user/performance/PerformanceClient";
 
 export default async function AccountPage() {
   const supabaseServer = await createKabuTrailServerClient();
@@ -13,16 +14,14 @@ export default async function AccountPage() {
     redirect("/login");
   }
 
-  const { brokers, accounts } = await getAccountListDisplayData(
-    supabaseServer,
-    user.id
-  );
+  // const { brokers, accounts } = await getAccountListDisplayData(
+  //   supabaseServer,
+  //   user.id
+  // );
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">取引登録</h1>
-      </div>
+    <div>
+      <PerformanceClient user={user}></PerformanceClient>
     </div>
   );
 }

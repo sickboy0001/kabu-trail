@@ -30,60 +30,64 @@
 - **レスポンシブデザイン**: Tailwind CSSを採用し、PC・スマホ両方からの閲覧に対応。
 
 
-## システム構成・データモデル
+## システム構成・アーキテクチャ
 
-### 1. マスタデータ
+詳細な設計情報は `docs/02_design/` 配下を参照してください。
 
-* **証券会社 (Broker)**: 各証券会社の定義。
-* **手数料 (Fee)**: 証券会社ごとの手数料体系の保持。
-* **税金**: 適用される税率情報の管理。
-
-### 2. ユーザーデータ
-
-* ユーザーごとに利用する証券会社と手数料を紐付け。
-* **手数料カスタマイズ**: 個人設定として手数料の微調整が可能。
-* **口座属性**: 特定の取引が「NISA」枠であるかどうかのフラグ管理。
-
-### 3. トレード・資金データ
-
-* **トレード記録**: 売買日時、銘柄、数量、価格の自由かつ正確な入力。
-* **入出金記録**: 証券口座に対する入金・出金の履歴管理（日時・金額）。
-* **推移把握**: 月次単位でのパフォーマンスレポート。
-
-### 4. 市場データ
-
-* Yahoo APIより取得済みの株価・銘柄情報を活用し、入力時の正確性を担保（インポート処理実装済み）。
-
-## 技術スタック
-
-- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS, Lucide React
-- **Backend/Auth**: Supabase (PostgreSQL)
-- **Library**: @supabase/ssr (Server-side rendering support)
+* **システム構成・アーキテクチャ**: データモデル概要、技術スタック
+* **データベース設計 (既存)**: 既存テーブル定義
+* **データベース設計 (新機能案)**: 証券口座・手数料管理の新スキーマ案
 
 ## ディレクトリ構成
 
 Next.jsのApp Routerで作成する場合、以下のような構成にすると管理が非常に楽になります。
 
 ```text
-src/
- ├── docs                # ドキュメント
- │    └── (readme.md)     # README
- ├── app/ (ルーティング)
- │    ├── (auth)/        # ログイン・サインイン関連
- │    ├── (user)/        # ユーザー用メニュー
- │    │    ├── dashboard/
- │    │    ├── trades/
- │    │    └── accounts/
- │    └── admin/         # 管理者用メニュー
- ├── components/ (共通UI)
- │    ├── ui/            # ボタンやテーブルなどの基本パーツ
- │    ├── charts/        # グラフ専用コンポーネント
- │    └── forms/         # 入力フォーム関連
- ├── lib/ (共通ロジック)
- │    ├── calculations/  # 手数料や税金の計算ロジック
- │    └── supabase.ts    # DB接続設定
- └── types/              # TypeScriptの型定義ファイル
-
+kabu-trail/
+├── docs/                        # ドキュメント
+│   ├── 01_requirement/          # 01_要件定義・企画
+│   │   ├── 01_concept.md        # コンセプト・概要
+│   │   ├── 02_features.md       # 機能一覧
+│   │   └── 03_roadmap.md        # ロードマップ
+│   ├── 02_design/               # 02_設計資料
+│   │   ├── 01_architecture/     # システム構成・アーキテクチャ
+│   │   │   └── 01_overview.md
+│   │   ├── 02_database/         # DB設計（ER図・テーブル定義）
+│   │   │   └── 01_schema.md
+│   │   ├── 03_api/              # API仕様
+│   │   │   └── 01_definition.md
+│   │   └── 04_ui_ux/            # 画面遷移・デザイン
+│   │   │       └── 01_screen_flow.md
+│   ├── 03_development/          # 03_開発ガイド
+│   │   ├── 01_environment.md    # 環境構築手順
+│   │   ├── 02_coding_style.md   # コーディング規約
+│   │   └── 03_branching.md      # ギット運用・PRルール
+│   ├── 04_assets/               # 04_静的ファイル
+│   │                            # 画像は各々のディレクトリにimageというフォルダを準備してそこに配置
+│   └── 05_feture/               # 05 実装予定の機能
+├── src/                     # ソースコード（既存構成を維持）
+│   ├── app/                 # Next.js App Router
+│   │   ├── (auth)/          # 認証系 (login)
+│   │   ├── (user)/          # ユーザー系 (analytics, trades, etc.)
+│   │   ├── admin/           # 管理者系 (brokers, fees, etc.)
+│   │   └── api/             # API Route Handlers
+│   ├── components/          # UI部品
+│   │   ├── charts/
+│   │   ├── forms/
+│   │   ├── layout/
+│   │   ├── pages/
+│   │   └── ui/
+│   ├── lib/                 # ライブラリ・共通ロジック
+│   │   ├── calculations/
+│   │   └── supabase/
+│   ├── services/            # データ取得層
+│   └── types/               # TypeScript型定義
+├── tests/                   # テストコード
+├── docker/                  # Docker関連設定
+├── data/                    # CSV・初期データ
+├── public/                  # 公開アセット
+├── package.json
+└── README.md
 ```
 
 
