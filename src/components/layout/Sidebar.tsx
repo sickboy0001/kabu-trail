@@ -16,6 +16,7 @@ import {
   Settings,
   LogOut,
   FileSpreadsheet,
+  ShoppingBasket,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -30,6 +31,8 @@ const menuItems = [
   { name: "資産推移", href: "/assets", icon: LineChart },
   // 監視メモ: 観察(Search)と記録をイメージ
   { name: "監視メモ", href: "/observation_logs", icon: SearchCode },
+  //http://localhost:3000/baskets
+  { name: "バスケット", href: "/baskets", icon: ShoppingBasket },
   { name: "カレンダー", href: "/calendar", icon: Calendar },
   { name: "口座管理", href: "/settings/accounts", icon: Wallet },
 ];
