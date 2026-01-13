@@ -1,7 +1,13 @@
 import { MouseEvent } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Pencil, Trash2, RefreshCcw } from "lucide-react";
+import {
+  CalendarIcon,
+  Pencil,
+  Trash2,
+  RefreshCcw,
+  MessageSquarePlus,
+} from "lucide-react";
 import { type StockInfo } from "@/services/stocks";
 
 type ObservationLogWithStockInfo = {
@@ -12,6 +18,7 @@ type ObservationLogWithStockInfo = {
   content: string;
   tags: string[];
   createdAt: string;
+  updatedAt: string;
 };
 
 type Props = {
@@ -19,6 +26,8 @@ type Props = {
   onEdit: (e: MouseEvent, log: any) => void;
   onDelete: (e: MouseEvent, id: number) => void;
   onReactivate: (e: MouseEvent, id: number) => void;
+  onStockClick?: (name: string) => void;
+  onAddNote?: (e: MouseEvent, stock: StockInfo) => void;
 };
 
 export function ObservationLogCard({
@@ -26,6 +35,8 @@ export function ObservationLogCard({
   onEdit,
   onDelete,
   onReactivate,
+  onStockClick,
+  onAddNote,
 }: Props) {
   return (
     <Card
@@ -61,7 +72,11 @@ export function ObservationLogCard({
               <Badge
                 key={stock.code}
                 variant="secondary"
-                className="bg-slate-200 text-slate-700 font-bold whitespace-nowrap"
+                className="bg-slate-200 text-slate-700 font-bold whitespace-nowrap hover:bg-slate-300 cursor-pointer transition-colors pr-1.5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStockClick?.(stock.name);
+                }}
               >
                 <span
                   className="max-w-30 truncate block"
@@ -69,6 +84,16 @@ export function ObservationLogCard({
                 >
                   [{stock.code}] {stock.name}
                 </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddNote?.(e, stock);
+                  }}
+                  className="ml-1.5 p-0.5 text-slate-500 hover:text-blue-600 hover:bg-white/50 rounded-full transition-colors"
+                  title={`${stock.name}について新規メモを作成`}
+                >
+                  <MessageSquarePlus size={14} />
+                </button>
               </Badge>
             ))}
             {log.stocks.length === 0 && (
@@ -99,9 +124,16 @@ export function ObservationLogCard({
           ))}
         </div>
         <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center">
-          <span className="text-[10px] text-slate-400">
-            入力: {log.createdAt}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-[10px] text-slate-400">
+              入力: {log.createdAt}
+            </span>
+            {log.createdAt !== log.updatedAt && (
+              <span className="text-[10px] text-slate-400">
+                更新: {log.updatedAt}
+              </span>
+            )}
+          </div>
           {!log.isActive && (
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-red-500">

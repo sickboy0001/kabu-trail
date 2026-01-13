@@ -83,6 +83,39 @@ CREATE TABLE spt_daily_quotes (
 | stock_code | TEXT                     | 参照した銘柄のコード。spt_daily_quotes または spt_stocks テーブルの code を参照。 | 
 | viewed_at  | TIMESTAMP WITH TIME ZONE | 銘柄が参照された日時。自動的に現在日時が設定されます。                            | 
 
+
+### spt_stocks
+
+個々の銘柄（企業）の基本情報
+
+| カラム名     | 型        | 補足|
+| ------------ | --------- | --------------------------------- | 
+| code         | text      | 主キー。銘柄コード（例: 7203）。YahooFinanceAPIなどで一意に識別されるコードで、NOT NULL制約で必須項目とします。 | 
+| name         | text      | 銘柄名/会社名（例: トヨタ自動車）。NOT NULL制約で必須項目とします。 | 
+| market       | text      | 上場市場（例: 東証プライム, ナスダック など）。任意項目。| 
+| industry     | text      | 業種（例: 自動車, 電気機器 など）。任意項目。        | 
+| tradable     | boolean   | 取引可能フラグ。現在取引されている銘柄かどうかを示す（任意、デフォルトTRUEなど）。   | 
+| listing_date | date      | 上場日。任意項目。 | 
+| created_at   | timestamp | レコードが挿入された日時。now()で自動的にタイムスタンプが設定されます。| 
+| updated_at   | timestamp | レコードが最終更新された日時。now()で自動更新されるように設定することが一般的です。 | 
+
+
+
+
+### jpx_company_master
+| カラム名         | データ型   | NULL許容 | 説明         | 主キー/その他                  | 
+| ---------------- | ---------- | -------- | ------------------------------------------------ | ------------------------------ | 
+| code| TEXT       | NO       | 銘柄コード（例: "1301", "130A"）                 | 主キー (一意性が保証される)    | 
+| company_name     | TEXT       | NO       | 銘柄名（例: "極洋"）                             |                                | 
+| market_segment   | TEXT       | NO       | 市場・商品区分（例: "プライム（内国株式）"）     |                                | 
+| industry_33_code | TEXT       | YES      | 33業種コード（例: "50", "-" は空文字列）         | NULL許容（ETFなどの場合）      | 
+| industry_33_name | TEXT       | YES      | 33業種区分（例: "水産・農林業", "-" は空文字列） | NULL許容（ETFなどの場合）      | 
+| industry_17_code | TEXT       | YES      | 17業種コード（例: "1", "-" は空文字列）          | NULL許容（ETFなどの場合）      | 
+| industry_17_name | TEXT       | YES      | 17業種区分（例: "食品", "-" は空文字列）         | NULL許容（ETFなどの場合）      | 
+| scale_code       | TEXT       | YES      | 規模コード（例: "7", "-" は空文字列）            | NULL許容（ETFなどの場合）      | 
+| scale_name       | TEXT       | YES      | 規模区分（例: "TOPIX Small 2", "-" は空文字列）  | NULL許容（ETFなどの場合）      | 
+| updated_at       | TIMESTAMPZ | NO       | レコード最終更新日時                             | NOW() のデフォルト値を設定推奨 | 
+
 ### spt_user 
 
 **ユーザー情報**

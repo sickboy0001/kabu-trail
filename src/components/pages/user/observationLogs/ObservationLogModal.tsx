@@ -31,6 +31,7 @@ type Props = {
     stocks: StockInfo[];
     tags: string[];
   } | null;
+  initialStocks?: StockInfo[];
 };
 
 export function ObservationLogModal({
@@ -38,6 +39,7 @@ export function ObservationLogModal({
   onClose,
   onSave,
   initialData,
+  initialStocks,
 }: Props) {
   const [date, setDate] = useState("");
   const [content, setContent] = useState("");
@@ -60,12 +62,12 @@ export function ObservationLogModal({
         setDate(getTodayString());
         setContent("");
         setTags("");
-        setStocks([]);
+        setStocks(initialStocks || []);
       }
       setStockInput({ code: "", name: "" });
       setSuggestions([]);
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, initialStocks]);
 
   const handleRemoveStock = (indexToRemove: number) => {
     setStocks(stocks.filter((_, index) => index !== indexToRemove));

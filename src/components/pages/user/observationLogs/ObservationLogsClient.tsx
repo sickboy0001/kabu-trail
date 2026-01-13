@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
-import { Plus, Filter, ArrowUpDown, Undo2 } from "lucide-react";
+import { Plus, Filter, ArrowUpDown, Undo2, X } from "lucide-react";
 import { ObservationLogCard } from "./ObservationLogCard";
 import {
   ObservationLogModal,
@@ -73,8 +73,12 @@ export default function ObservationLogsClient({ user }: Props) {
         })),
         tags: item.tags || [],
         isActive: item.is_active,
-        createdAt: new Date(item.created_at).toLocaleString("ja-JP"),
-        updatedAt: new Date(item.updated_at).toLocaleString("ja-JP"),
+        createdAt: new Date(item.created_at).toLocaleString("ja-JP", {
+          timeZone: "Asia/Tokyo",
+        }),
+        updatedAt: new Date(item.updated_at).toLocaleString("ja-JP", {
+          timeZone: "Asia/Tokyo",
+        }),
       }));
       setLogs(formattedLogs);
     } catch (error) {
@@ -94,6 +98,7 @@ export default function ObservationLogsClient({ user }: Props) {
   // モーダルとフォームの状態管理
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
+  const [presetStocks, setPresetStocks] = useState<StockInfo[]>([]);
 
   // フィルター・ソート状態
   const [showInactive, setShowInactive] = useState(false);
@@ -112,6 +117,14 @@ export default function ObservationLogsClient({ user }: Props) {
   const handleEdit = (e: React.MouseEvent, log: ObservationLogFormData) => {
     e.stopPropagation();
     setEditingLogId(log.id);
+    setIsModalOpen(true);
+  };
+
+  // 銘柄指定で新規作成
+  const handleAddNote = (e: React.MouseEvent, stock: StockInfo) => {
+    e.stopPropagation();
+    setPresetStocks([stock]);
+    setEditingLogId(null);
     setIsModalOpen(true);
   };
 
@@ -150,6 +163,7 @@ export default function ObservationLogsClient({ user }: Props) {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingLogId(null);
+    setPresetStocks([]);
   };
 
   // 削除処理（論理削除）
@@ -211,6 +225,11 @@ export default function ObservationLogsClient({ user }: Props) {
       return () => clearTimeout(timer);
     }
   }, [undoLogId]);
+
+  // 銘柄クリック時のハンドラ
+  const handleStockClick = (name: string) => {
+    setFilterStockText(name);
+  };
 
   // フィルタリングとソート
   const filteredAndSortedLogs = useMemo(() => {
@@ -276,13 +295,23 @@ export default function ObservationLogsClient({ user }: Props) {
       <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
         <div className="flex items-center gap-2">
           <Filter size={16} className="text-slate-500" />
-          <input
-            type="text"
-            placeholder="銘柄コード・名前で検索"
-            value={filterStockText}
-            onChange={(e) => setFilterStockText(e.target.value)}
-            className="text-sm border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="銘柄コード・名前で検索"
+              value={filterStockText}
+              onChange={(e) => setFilterStockText(e.target.value)}
+              className="text-sm border border-slate-300 rounded px-2 py-1 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+            />
+            {filterStockText && (
+              <button
+                onClick={() => setFilterStockText("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -322,6 +351,8 @@ export default function ObservationLogsClient({ user }: Props) {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onReactivate={handleReactivate}
+              onStockClick={handleStockClick}
+              onAddNote={handleAddNote}
             />
           ))}
         </div>
@@ -356,6 +387,7 @@ export default function ObservationLogsClient({ user }: Props) {
         initialData={
           editingLogId ? logs.find((l) => l.id === editingLogId) || null : null
         }
+        initialStocks={presetStocks}
       />
     </div>
   );

@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Settings,
   LogOut,
+  FileSpreadsheet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -121,6 +122,20 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
               <Settings size={20} />
               {isOpen && (
                 <span className="whitespace-nowrap">証券会社・プラン</span>
+              )}
+            </Link>
+            <Link
+              href="/admin/jsxImport"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                pathname === "/admin/jsxImport"
+                  ? "bg-blue-600 text-white"
+                  : "hover:bg-slate-800 hover:text-white"
+              }`}
+              title={!isOpen ? "銘柄マスタ更新" : undefined}
+            >
+              <FileSpreadsheet size={20} />
+              {isOpen && (
+                <span className="whitespace-nowrap">銘柄マスタ更新</span>
               )}
             </Link>
           </div>
