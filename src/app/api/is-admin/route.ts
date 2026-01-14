@@ -17,13 +17,13 @@ export async function GET(req: Request) {
     const { createKabuTrailAdminClient } = await import("@/lib/supabaseAdmin");
     const admin = createKabuTrailAdminClient();
 
-    console.log("is-admin: checking roles for user:", user.id);
+    // console.log("is-admin: checking roles for user:", user.id);
 
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.warn(
-        "is-admin: SUPABASE_SERVICE_ROLE_KEY is missing. Admin client may lack permissions."
-      );
-    }
+    // if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    //   console.warn(
+    //     "is-admin: SUPABASE_SERVICE_ROLE_KEY is missing. Admin client may lack permissions."
+    //   );
+    // }
 
     let { data, error } = await admin
       .from("user_roles")
@@ -31,9 +31,9 @@ export async function GET(req: Request) {
       .eq("user_id", user.id);
 
     if (error && error.code === "42501") {
-      console.warn(
-        "is-admin: Admin permission denied (42501). Falling back to user client."
-      );
+      // console.warn(
+      //   "is-admin: Admin permission denied (42501). Falling back to user client."
+      // );
       const res = await supabase
         .from("user_roles")
         .select(`role_id, roles(name)`)
@@ -42,10 +42,10 @@ export async function GET(req: Request) {
       error = res.error;
     }
 
-    console.log("is-admin: query result", { data, error });
+    // console.log("is-admin: query result", { data, error });
 
     if (error) {
-      console.error("is-admin admin query error:", error);
+      // console.error("is-admin admin query error:", error);
       return NextResponse.json({ isAdmin: false }, { status: 200 });
     }
 
@@ -54,7 +54,7 @@ export async function GET(req: Request) {
       .filter(Boolean);
     const isAdmin = roleNames.some((n: string) => /admin/i.test(n));
 
-    console.log("is-admin: roleNames=", roleNames, "isAdmin=", isAdmin);
+    // console.log("is-admin: roleNames=", roleNames, "isAdmin=", isAdmin);
 
     return NextResponse.json({ isAdmin }, { status: 200 });
   } catch (err) {

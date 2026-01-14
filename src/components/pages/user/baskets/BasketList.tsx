@@ -19,10 +19,10 @@ export function BasketList({
   onCreate,
 }: Props) {
   return (
-    <aside className="w-full">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <aside className="w-full min-w-0">
+      <div className="flex overflow-x-auto pb-4 sm:pb-0 gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-1 snap-x sm:snap-none">
         {isLoading ? (
-          <div className="col-span-full text-center py-4 text-slate-400 text-sm">
+          <div className="col-span-full text-center py-4 text-slate-400 text-sm w-full">
             読み込み中...
           </div>
         ) : (
@@ -31,11 +31,15 @@ export function BasketList({
               <div
                 key={basket.id}
                 onClick={() => onSelect(basket.id)}
-                className={`p-3 rounded-lg cursor-pointer transition-all border group ${
-                  selectedBasketId === basket.id
-                    ? "bg-blue-50 border-blue-200 shadow-sm"
-                    : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-200"
-                }`}
+                className={`
+                  shrink-0 w-72 sm:w-auto snap-center
+                  p-3 rounded-lg cursor-pointer transition-all border group 
+                  ${
+                    selectedBasketId === basket.id
+                      ? "bg-blue-50 border-blue-200 shadow-sm"
+                      : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-200"
+                  }
+                `}
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
@@ -64,7 +68,13 @@ export function BasketList({
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div
+                    className={`flex flex-col gap-0.5 transition-opacity ${
+                      selectedBasketId === basket.id
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    }`}
+                  >
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -74,7 +84,7 @@ export function BasketList({
                       className="p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
                       title="上に移動"
                     >
-                      <ChevronUp size={14} />
+                      <ChevronUp size={14} className="-rotate-90 sm:rotate-0" />
                     </button>
                     <button
                       onClick={(e) => {
@@ -85,7 +95,10 @@ export function BasketList({
                       className="p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
                       title="下に移動"
                     >
-                      <ChevronDown size={14} />
+                      <ChevronDown
+                        size={14}
+                        className="-rotate-90 sm:rotate-0"
+                      />
                     </button>
                   </div>
                 </div>
@@ -93,7 +106,7 @@ export function BasketList({
             ))}
             <button
               onClick={onCreate}
-              className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-slate-300 text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all min-h-[80px]"
+              className="shrink-0 w-72 sm:w-auto snap-center flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-slate-300 text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all min-h-[80px]"
             >
               <Plus size={24} />
               <span className="text-sm font-medium">新規バスケット</span>

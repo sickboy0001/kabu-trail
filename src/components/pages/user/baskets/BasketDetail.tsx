@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Link from "next/link";
 import {
   Pencil,
   Trash2,
@@ -55,7 +56,7 @@ export function BasketDetail({
 
   if (!basket) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 min-h-[400px]">
+      <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 min-h-100">
         <ShoppingBasket size={48} className="mb-4 opacity-20" />
         <p>バスケットを選択するか、新規作成してください</p>
       </div>
@@ -94,7 +95,7 @@ export function BasketDetail({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-4 md:p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-medium text-slate-700 flex items-center gap-2">
             構成銘柄 <Badge variant="secondary">{items.length}</Badge>
@@ -125,101 +126,194 @@ export function BasketDetail({
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-2 py-3 w-8"></th>
-                  <th className="px-2 py-3 w-16 text-center">操作</th>
-                  <th className="px-2 py-3 min-w-[180px]">
-                    コード・市場・名称
-                  </th>
-                  <th className="px-2 py-3 w-16 text-center">チャート</th>
-                  <th className="px-2 py-3 text-right min-w-[100px]">現在値</th>
-                  <th className="px-2 py-3 text-right min-w-[100px]">前日比</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {items.map((item, index) => (
-                  <tr
-                    key={item.id}
-                    draggable
-                    onDragStart={(e) => {
-                      setDraggedIndex(index);
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = "move";
-                      if (draggedIndex !== null && draggedIndex !== index) {
-                        setDragOverIndex(index);
-                      }
-                    }}
-                    onDragEnd={() => {
-                      setDraggedIndex(null);
-                      setDragOverIndex(null);
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (draggedIndex !== null && draggedIndex !== index) {
-                        onMoveStock(draggedIndex, index);
-                      }
-                      setDraggedIndex(null);
-                      setDragOverIndex(null);
-                    }}
-                    className={`bg-white hover:bg-slate-50 transition-colors group ${
-                      draggedIndex === index ? "opacity-50 bg-blue-50" : ""
-                    } ${
-                      dragOverIndex === index && draggedIndex !== index
-                        ? "shadow-[inset_0_2px_0_0_#2563eb]"
-                        : ""
-                    }`}
-                  >
-                    <td className="px-2 py-3 text-center">
-                      <div className="cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing flex justify-center">
-                        <GripVertical size={16} />
-                      </div>
-                    </td>
-                    <td className="px-2 py-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => onRemoveStock(item.id)}
-                          className="text-slate-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition-colors"
-                          title="削除"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-mono font-bold text-slate-900">
-                            {item.stock_code}
-                          </span>
-                          <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded border border-slate-200">
-                            {item.market || "東証"}
-                          </span>
+          <>
+            {/* PC向けテーブル表示 */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-2 py-3 w-8"></th>
+                    <th className="px-2 py-3 w-16 text-center">操作</th>
+                    <th className="px-2 py-3 min-w-45">コード・市場・名称</th>
+                    <th className="px-2 py-3 w-16 text-center">チャート</th>
+                    <th className="px-2 py-3 text-right min-w-25">現在値</th>
+                    <th className="px-2 py-3 text-right min-w-25">前日比</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {items.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggedIndex(index);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (draggedIndex !== null && draggedIndex !== index) {
+                          setDragOverIndex(index);
+                        }
+                      }}
+                      onDragEnd={() => {
+                        setDraggedIndex(null);
+                        setDragOverIndex(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (draggedIndex !== null && draggedIndex !== index) {
+                          onMoveStock(draggedIndex, index);
+                        }
+                        setDraggedIndex(null);
+                        setDragOverIndex(null);
+                      }}
+                      className={`bg-white hover:bg-slate-50 transition-colors group ${
+                        draggedIndex === index ? "opacity-50 bg-blue-50" : ""
+                      } ${
+                        dragOverIndex === index && draggedIndex !== index
+                          ? "shadow-[inset_0_2px_0_0_#2563eb]"
+                          : ""
+                      }`}
+                    >
+                      <td className="px-2 py-3 text-center">
+                        <div className="cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing flex justify-center">
+                          <GripVertical size={16} />
                         </div>
-                        <span className="text-slate-700 font-medium truncate max-w-[200px]">
-                          {item.name}
+                      </td>
+                      <td className="px-2 py-3">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => onRemoveStock(item.id)}
+                            className="text-slate-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition-colors"
+                            title="削除"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-2 py-3">
+                        <Link
+                          href={`/stock?code=${item.stock_code}`}
+                          className="flex flex-col group/link"
+                        >
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="font-mono font-bold text-slate-900 group-hover/link:text-blue-600 group-hover/link:underline">
+                              {item.stock_code}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded border border-slate-200">
+                              {item.market || "東証"}
+                            </span>
+                          </div>
+                          <span className="text-slate-700 font-medium truncate max-w-50 group-hover/link:text-blue-600 group-hover/link:underline">
+                            {item.name}
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="px-2 py-3 text-center">
+                        <Link
+                          href={`/stock?code=${item.stock_code}`}
+                          className="flex justify-center text-slate-400 hover:text-blue-600 cursor-pointer"
+                        >
+                          <TrendingUp size={18} />
+                        </Link>
+                      </td>
+                      <td className="px-2 py-3 text-right">
+                        <div className="font-mono font-medium text-slate-900">
+                          {item.currentPrice?.toLocaleString() ?? "---"}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {item.currentPriceDate ?? "--/--"}
+                        </div>
+                      </td>
+                      <td className="px-2 py-3 text-right">
+                        <div
+                          className={`font-mono font-medium ${
+                            (item.priceChange ?? 0) > 0
+                              ? "text-red-600"
+                              : (item.priceChange ?? 0) < 0
+                              ? "text-green-600"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {(item.priceChange ?? 0) > 0 ? "+" : ""}
+                          {item.priceChange?.toLocaleString() ?? "---"}
+                        </div>
+                        <div
+                          className={`text-xs ${
+                            (item.priceChangePercent ?? 0) > 0
+                              ? "text-red-600"
+                              : (item.priceChangePercent ?? 0) < 0
+                              ? "text-green-600"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {(item.priceChangePercent ?? 0) > 0 ? "+" : ""}
+                          {item.priceChangePercent?.toFixed(2) ?? "---"}%
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* スマホ向けカード表示 */}
+            <div className="md:hidden space-y-3">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-3"
+                >
+                  <div className="flex justify-between items-start">
+                    <Link
+                      href={`/stock?code=${item.stock_code}`}
+                      className="flex-1 group/link"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono font-bold text-slate-900 group-hover/link:text-blue-600 group-hover/link:underline">
+                          {item.stock_code}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded border border-slate-200">
+                          {item.market || "東証"}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-2 py-3 text-center">
-                      <div className="flex justify-center text-slate-400 hover:text-blue-600 cursor-pointer">
+                      <span className="text-slate-700 font-medium line-clamp-1 group-hover/link:text-blue-600 group-hover/link:underline">
+                        {item.name}
+                      </span>
+                    </Link>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/stock?code=${item.stock_code}`}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                      >
                         <TrendingUp size={18} />
+                      </Link>
+                      <button
+                        onClick={() => onRemoveStock(item.id)}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-end border-t border-slate-100 pt-2">
+                    <div>
+                      <div className="text-xs text-slate-400 mb-0.5">
+                        現在値
                       </div>
-                    </td>
-                    <td className="px-2 py-3 text-right">
-                      <div className="font-mono font-medium text-slate-900">
+                      <div className="font-mono font-medium text-lg text-slate-900">
                         {item.currentPrice?.toLocaleString() ?? "---"}
+                        <span className="text-xs text-slate-400 ml-1 font-normal">
+                          円
+                        </span>
                       </div>
-                      <div className="text-[10px] text-slate-400">
-                        {item.currentPriceDate ?? "--/--"}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-400 mb-0.5">
+                        前日比
                       </div>
-                    </td>
-                    <td className="px-2 py-3 text-right">
                       <div
                         className={`font-mono font-medium ${
                           (item.priceChange ?? 0) > 0
@@ -230,26 +324,16 @@ export function BasketDetail({
                         }`}
                       >
                         {(item.priceChange ?? 0) > 0 ? "+" : ""}
-                        {item.priceChange?.toLocaleString() ?? "---"}
-                      </div>
-                      <div
-                        className={`text-xs ${
-                          (item.priceChangePercent ?? 0) > 0
-                            ? "text-red-600"
-                            : (item.priceChangePercent ?? 0) < 0
-                            ? "text-green-600"
-                            : "text-slate-500"
-                        }`}
-                      >
+                        {item.priceChange?.toLocaleString() ?? "---"} (
                         {(item.priceChangePercent ?? 0) > 0 ? "+" : ""}
-                        {item.priceChangePercent?.toFixed(2) ?? "---"}%
+                        {item.priceChangePercent?.toFixed(2) ?? "---"}%)
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

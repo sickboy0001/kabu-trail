@@ -264,22 +264,24 @@ export default function BasketsClient({ user }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-6 min-h-[500px]">
+      <div className="flex flex-col lg:flex-row gap-6 min-h-[500px]">
         {/* Sidebar: Basket List */}
-        <BasketList
-          baskets={baskets}
-          selectedBasketId={selectedBasketId}
-          isLoading={isLoadingBaskets}
-          onSelect={setSelectedBasketId}
-          onMove={handleMoveBasket}
-          onCreate={() => {
-            setEditingBasket(null);
-            setIsBasketModalOpen(true);
-          }}
-        />
+        <div className="w-full lg:w-72 flex-shrink-0">
+          <BasketList
+            baskets={baskets}
+            selectedBasketId={selectedBasketId}
+            isLoading={isLoadingBaskets}
+            onSelect={setSelectedBasketId}
+            onMove={handleMoveBasket}
+            onCreate={() => {
+              setEditingBasket(null);
+              setIsBasketModalOpen(true);
+            }}
+          />
+        </div>
 
         {/* Main Content: Selected Basket Details */}
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           <BasketDetail
             basket={selectedBasket}
             items={basketItems}
