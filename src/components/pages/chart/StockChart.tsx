@@ -177,7 +177,13 @@ export default function StockChart({ code }: Props) {
         if (!result) return;
 
         const { timestamp, indicators } = result;
-        const quote = indicators.quote[0];
+        const quote = indicators.quote[0] as {
+          open: (number | null)[];
+          high: (number | null)[];
+          low: (number | null)[];
+          close: (number | null)[];
+          volume: (number | null)[];
+        };
 
         // APIレスポンスをチャート用データに変換
         const validData = timestamp

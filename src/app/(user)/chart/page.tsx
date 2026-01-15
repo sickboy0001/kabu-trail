@@ -1,4 +1,5 @@
 import StockChart from "@/components/pages/chart/StockChart";
+import UserStockClient from "@/components/pages/user/stock/UserStockClient";
 import { createKabuTrailServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 
@@ -13,6 +14,6 @@ export default async function DashboardPage() {
     redirect("/login");
   }
   // return <StockChart user={user} />;
-
-  return <StockChart />;
+  const code = "";
+  return <UserStockClient user={user} initialCode={code} />;
 }
