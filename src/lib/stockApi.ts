@@ -1,6 +1,9 @@
 "use server";
+// 1. まずはデフォルトインポートで全体を取得
+import YahooFinance from "yahoo-finance2";
 
-import yahooFinance from "yahoo-finance2";
+// インスタンスを作成
+const yahooFinance = new YahooFinance();
 
 export interface YahooFinanceApiResponse {
   chart: {
@@ -51,6 +54,7 @@ export interface StockDetails {
   volume: number | null;
   updated_at: string;
 }
+//http://localhost:3000/test/stockdetailでテスト可能
 
 export async function FetchStockData(
   symbol: string,
@@ -83,18 +87,15 @@ export async function FetchStockData(
     throw error;
   }
 }
-
 export async function fetchStockDetails(
   symbol: string
 ): Promise<StockDetails | null> {
   const currentSymbol = symbol.includes(".") ? symbol : `${symbol}.T`;
 
   try {
-    console.log(
-      `[fetchStockDetails] Fetching data for ${currentSymbol} using yahoo-finance2`
-    );
+    console.log(`[fetchStockDetails] Fetching: ${currentSymbol}`);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // インスタンスから直接呼び出す
     const summary = await yahooFinance.quoteSummary(currentSymbol, {
       modules: [
         "defaultKeyStatistics",
@@ -104,20 +105,10 @@ export async function fetchStockDetails(
       ],
     });
 
-    if (!summary) {
-      console.warn(
-        `[fetchStockDetails] No summary data returned for symbol ${currentSymbol}.`
-      );
-      return null;
-    }
+    if (!summary) return null;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { defaultKeyStatistics, financialData, summaryDetail, price } =
-      summary as any;
-
-    console.log(
-      `[fetchStockDetails] Successfully parsed data for ${currentSymbol} from Yahoo Finance.`
-    );
+      summary;
 
     return {
       market_cap: summaryDetail?.marketCap
@@ -135,7 +126,7 @@ export async function fetchStockDetails(
       roe: financialData?.returnOnEquity
         ? financialData.returnOnEquity * 100
         : null,
-      equity_ratio: financialData?.quickRatio ?? null, // ※QuickRatio を仮で使用
+      equity_ratio: financialData?.quickRatio ?? null,
       min_price: price?.regularMarketPrice
         ? price.regularMarketPrice * 100
         : null,
@@ -156,11 +147,8 @@ export async function fetchStockDetails(
       volume: summaryDetail?.volume ?? price?.regularMarketVolume ?? null,
       updated_at: new Date().toISOString(),
     };
-  } catch (error) {
-    console.error(
-      `[fetchStockDetails] Failed to fetch stock details for ${currentSymbol}:`,
-      error
-    );
+  } catch (error: any) {
+    console.error(`[fetchStockDetails] Error:`, error.message);
     return null;
   }
 }

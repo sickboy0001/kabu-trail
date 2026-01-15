@@ -47,107 +47,98 @@ export function ObservationLogCard({
     >
       {/* 操作ボタンエリア */}
       {log.isActive && (
-        <div className="absolute bottom-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10 bg-white/90 rounded-full p-0.5 shadow-sm border border-slate-100">
           <button
             onClick={(e) => onEdit(e, log)}
-            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"
             title="編集"
           >
-            <Pencil size={16} />
+            <Pencil size={14} />
           </button>
           <button
             onClick={(e) => onDelete(e, log.id)}
-            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full"
+            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full"
             title="削除（無効化）"
           >
-            <Trash2 size={16} />
+            <Trash2 size={14} />
           </button>
         </div>
       )}
 
-      <CardHeader className="p-4 pb-2">
-        <div className="flex justify-between items-start">
-          <div className="flex flex-wrap gap-1.5 max-w-[70%]">
+      <CardHeader className="p-3 pb-1">
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex flex-wrap gap-1 max-w-[75%]">
             {log.stocks.map((stock) => (
               <Badge
                 key={stock.code}
                 variant="secondary"
-                className="bg-slate-200 text-slate-700 font-bold whitespace-nowrap hover:bg-slate-300 cursor-pointer transition-colors pr-1.5"
+                className="bg-slate-200 text-slate-700 font-bold whitespace-nowrap hover:bg-slate-300 cursor-pointer transition-colors px-1.5 py-0 text-[10px] h-5"
                 onClick={(e) => {
                   e.stopPropagation();
                   onStockClick?.(stock.name);
                 }}
               >
                 <span
-                  className="max-w-30 truncate block"
+                  className="max-w-24 truncate block"
                   title={`[${stock.code}] ${stock.name}`}
                 >
-                  [{stock.code}] {stock.name}
+                  {stock.code} {stock.name}
                 </span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onAddNote?.(e, stock);
                   }}
-                  className="ml-1.5 p-0.5 text-slate-500 hover:text-blue-600 hover:bg-white/50 rounded-full transition-colors"
+                  className="ml-1 p-0.5 text-slate-500 hover:text-blue-600 hover:bg-white/50 rounded-full transition-colors"
                   title={`${stock.name}について新規メモを作成`}
                 >
-                  <MessageSquarePlus size={14} />
+                  <MessageSquarePlus size={12} />
                 </button>
               </Badge>
             ))}
             {log.stocks.length === 0 && (
-              <span className="text-sm font-bold text-slate-600">Note</span>
+              <span className="text-xs font-bold text-slate-500 px-1">
+                Note
+              </span>
             )}
           </div>
-          <Badge
-            variant="outline"
-            className="text-xs font-normal text-slate-500 bg-white/50"
-          >
+          <div className="flex items-center text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
             <CalendarIcon className="mr-1 h-3 w-3" />
             {log.date}
-          </Badge>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+      <CardContent className="p-3 pt-1">
+        <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">
           {log.content}
         </p>
-        <div className="mt-4 flex flex-wrap gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-          {log.tags.map((tag) => (
-            <span
-              key={tag}
-              className="text-[10px] bg-white border px-1.5 py-0.5 rounded text-slate-500"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-        <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-slate-400">
-              入力: {log.createdAt}
-            </span>
-            {log.createdAt !== log.updatedAt && (
-              <span className="text-[10px] text-slate-400">
-                更新: {log.updatedAt}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 min-h-[20px]">
+          <div className="flex flex-wrap gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+            {log.tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-[9px] bg-white border px-1 py-0 rounded text-slate-500"
+              >
+                #{tag}
               </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            {!log.isActive && (
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] font-bold text-red-500">
+                  削除済
+                </span>
+                <button
+                  onClick={(e) => onReactivate(e, log.id)}
+                  className="text-slate-400 hover:text-blue-600 transition-colors p-1 hover:bg-blue-50 rounded-full"
+                  title="有効化"
+                >
+                  <RefreshCcw size={12} />
+                </button>
+              </div>
             )}
           </div>
-          {!log.isActive && (
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-red-500">
-                削除済み
-              </span>
-              <button
-                onClick={(e) => onReactivate(e, log.id)}
-                className="text-slate-400 hover:text-blue-600 transition-colors p-1 hover:bg-blue-50 rounded-full"
-                title="有効化"
-              >
-                <RefreshCcw size={14} />
-              </button>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

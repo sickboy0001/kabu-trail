@@ -25,6 +25,8 @@ export type ObservationLog = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  rawUpdatedAt: string;
+  rawCreatedAt: string;
 };
 
 type Props = {
@@ -79,6 +81,8 @@ export default function ObservationLogsClient({ user }: Props) {
         updatedAt: new Date(item.updated_at).toLocaleString("ja-JP", {
           timeZone: "Asia/Tokyo",
         }),
+        rawUpdatedAt: item.updated_at,
+        rawCreatedAt: item.created_at,
       }));
       setLogs(formattedLogs);
     } catch (error) {
@@ -103,9 +107,9 @@ export default function ObservationLogsClient({ user }: Props) {
   // フィルター・ソート状態
   const [showInactive, setShowInactive] = useState(false);
   const [filterStockText, setFilterStockText] = useState("");
-  const [sortKey, setSortKey] = useState<"date" | "createdAt" | "updatedAt">(
-    "date"
-  );
+  const [sortKey, setSortKey] = useState<
+    "date" | "rawCreatedAt" | "rawUpdatedAt"
+  >("date");
 
   // Undo用状態
   const [undoLogId, setUndoLogId] = useState<number | null>(null);
@@ -257,8 +261,11 @@ export default function ObservationLogsClient({ user }: Props) {
       if (a[sortKey] < b[sortKey]) return 1;
       if (a[sortKey] > b[sortKey]) return -1;
       // 同値の場合は作成日時で降順（新しいものが上）
-      if (a.createdAt < b.createdAt) return 1;
-      if (a.createdAt > b.createdAt) return -1;
+      if (a.rawCreatedAt < b.rawCreatedAt) return 1;
+      if (a.rawCreatedAt > b.rawCreatedAt) return -1;
+      // 作成日時も同じ場合は更新日時で降順
+      if (a.rawUpdatedAt < b.rawUpdatedAt) return 1;
+      if (a.rawUpdatedAt > b.rawUpdatedAt) return -1;
       return 0;
     });
 
@@ -322,8 +329,8 @@ export default function ObservationLogsClient({ user }: Props) {
             className="text-sm border border-slate-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
             <option value="date">日順</option>
-            <option value="createdAt">入力日順</option>
-            <option value="updatedAt">更新日順</option>
+            <option value="rawCreatedAt">入力日順</option>
+            <option value="rawUpdatedAt">更新日順</option>
           </select>
         </div>
 
