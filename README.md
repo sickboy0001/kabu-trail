@@ -117,8 +117,12 @@ git push origin main
 - [Github](https://github.com/sickboy0001/kabu-trail)
 
 
+## todo
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+- [ ] MacDの表示
+- [ ] 移動平均線
+- [x] Toastでの通知（Backets削除）
+
 
 ## Getting Started
 

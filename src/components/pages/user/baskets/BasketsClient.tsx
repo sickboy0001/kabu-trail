@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { User } from "@supabase/supabase-js";
-import { toast } from "sonner";
+import { Toaster, toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Trash2, Undo2 } from "lucide-react";
 import {
   getBaskets,
   createBasket,
@@ -15,6 +17,7 @@ import {
   type StockBasketItem,
 } from "@/services/baskets";
 import { getStockNamesByCodes, type StockInfo } from "@/services/stocks";
+import { fetchMultipleStockDetails } from "@/lib/stockApi";
 import { BasketModal } from "./BasketModal";
 import { AddStockModal } from "./AddStockModal";
 import { BasketDetail, type BasketItemWithInfo } from "./BasketDetail";
@@ -38,6 +41,7 @@ export default function BasketsClient({ user }: Props) {
 
   // 削除タイマー管理用
   const deleteTimers = useRef<{ [key: number]: NodeJS.Timeout }>({});
+  const stockDeleteTimers = useRef<{ [key: number]: NodeJS.Timeout }>({});
 
   // Fetch baskets on mount
   useEffect(() => {
@@ -76,21 +80,43 @@ export default function BasketsClient({ user }: Props) {
 
       // Fetch stock names
       const codes = Array.from(new Set(items.map((i) => i.stock_code)));
-      const stockInfos = await getStockNamesByCodes(codes);
+
+      // 並列で名前と詳細情報を取得
+      const [stockInfos, stockDetailsMap] = await Promise.all([
+        getStockNamesByCodes(codes),
+        fetchMultipleStockDetails(codes),
+      ]);
+
       const stockMap = new Map(stockInfos.map((s) => [s.code, s.name]));
 
-      const today = new Date();
-      const dateStr = `${today.getMonth() + 1}/${today.getDate()}`;
+      const itemsWithInfo: BasketItemWithInfo[] = items.map((item) => {
+        const d = stockDetailsMap[item.stock_code];
+        const date = d ? new Date(d.updated_at) : new Date();
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
 
-      const itemsWithInfo: BasketItemWithInfo[] = items.map((item) => ({
-        ...item,
-        name: stockMap.get(item.stock_code) || "Unknown",
-        market: "東証PRM", // ダミーデータ
-        currentPrice: Math.random() * 5000 + 100, // ダミーデータ
-        currentPriceDate: dateStr, // ダミーデータ
-        priceChange: (Math.random() - 0.5) * 200, // ダミーデータ
-        priceChangePercent: (Math.random() - 0.5) * 10, // ダミーデータ
-      }));
+        return {
+          ...item,
+          name: stockMap.get(item.stock_code) || "Unknown",
+          market: "東証", // APIレスポンスに含まれていないため固定
+          currentPrice: d?.current_price ?? null,
+          currentPriceDate: dateStr,
+          priceChange:
+            d?.current_price && d?.prev_close
+              ? d.current_price - d.prev_close
+              : null,
+          priceChangePercent:
+            d?.current_price && d?.prev_close
+              ? ((d.current_price - d.prev_close) / d.prev_close) * 100
+              : null,
+          volume: d?.volume ?? null,
+          prevClose: d?.prev_close ?? null,
+          open: d?.open ?? null,
+          low: d?.low ?? null,
+          high: d?.high ?? null,
+          tradingValue:
+            d?.current_price && d?.volume ? d.current_price * d.volume : null, // 概算
+        };
+      });
 
       setBasketItems(itemsWithInfo);
     } catch (error) {
@@ -157,23 +183,38 @@ export default function BasketsClient({ user }: Props) {
 
     deleteTimers.current[id] = timerId;
 
-    toast("バスケットを削除しました", {
-      action: {
-        label: "元に戻す",
-        onClick: () => {
-          if (deleteTimers.current[id]) {
-            clearTimeout(deleteTimers.current[id]);
-            delete deleteTimers.current[id];
-          }
-
-          setBaskets((prev) => {
-            const restored = [...prev, basketToDelete];
-            return restored.sort((a, b) => a.sort_order - b.sort_order);
-          });
-          setSelectedBasketId(id);
-        },
-      },
-    });
+    toast.custom(
+      (t) => (
+        <Alert className="bg-white w-full shadow-lg border-slate-200">
+          <Trash2 className="h-4 w-4" />
+          <AlertTitle>削除しました</AlertTitle>
+          <AlertDescription className="flex items-center justify-between mt-1">
+            <span className="text-xs text-slate-500">
+              バスケットを削除しました
+            </span>
+            <button
+              onClick={() => {
+                if (deleteTimers.current[id]) {
+                  clearTimeout(deleteTimers.current[id]);
+                  delete deleteTimers.current[id];
+                }
+                setBaskets((prev) => {
+                  const restored = [...prev, basketToDelete];
+                  return restored.sort((a, b) => a.sort_order - b.sort_order);
+                });
+                setSelectedBasketId(id);
+                toast.dismiss(t);
+              }}
+              className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 ml-4"
+            >
+              <Undo2 size={14} />
+              元に戻す
+            </button>
+          </AlertDescription>
+        </Alert>
+      ),
+      { duration: 4000 },
+    );
   };
 
   const handleMoveBasket = async (index: number, direction: "up" | "down") => {
@@ -225,14 +266,63 @@ export default function BasketsClient({ user }: Props) {
   };
 
   const handleRemoveStock = async (itemId: number) => {
-    if (!confirm("この銘柄をバスケットから削除しますか？")) return;
-    try {
-      await removeBasketItem(itemId);
-      setBasketItems(basketItems.filter((item) => item.id !== itemId));
-    } catch (error) {
-      console.error("Failed to remove stock:", error);
-      alert("銘柄の削除に失敗しました。");
-    }
+    const originalIndex = basketItems.findIndex((item) => item.id === itemId);
+    const itemToDelete = basketItems[originalIndex];
+    if (!itemToDelete) return;
+
+    // UIから即座に削除（Optimistic UI）
+    setBasketItems((prev) => prev.filter((item) => item.id !== itemId));
+
+    // 実際の削除処理を遅延実行 (4秒)
+    const timerId = setTimeout(async () => {
+      try {
+        await removeBasketItem(itemId);
+        delete stockDeleteTimers.current[itemId];
+      } catch (error) {
+        console.error("Failed to remove stock:", error);
+        toast.error("銘柄の削除に失敗しました");
+        if (selectedBasketId) fetchBasketItems(selectedBasketId);
+      }
+    }, 4000);
+
+    stockDeleteTimers.current[itemId] = timerId;
+
+    toast.custom(
+      (t) => (
+        <Alert className="bg-white w-full shadow-lg border-slate-200">
+          <Trash2 className="h-4 w-4" />
+          <AlertTitle>削除しました</AlertTitle>
+          <AlertDescription className="flex items-center justify-between mt-1">
+            <span className="text-xs text-slate-500">
+              「{itemToDelete.name}」を削除しました
+            </span>
+            <button
+              onClick={() => {
+                if (stockDeleteTimers.current[itemId]) {
+                  clearTimeout(stockDeleteTimers.current[itemId]);
+                  delete stockDeleteTimers.current[itemId];
+                }
+                // 元に戻す
+                setBasketItems((prev) => {
+                  const newItems = [...prev];
+                  // 元の位置に挿入し直す
+                  if (originalIndex >= 0)
+                    newItems.splice(originalIndex, 0, itemToDelete);
+                  else newItems.push(itemToDelete);
+                  return newItems;
+                });
+                toast.dismiss(t);
+              }}
+              className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 ml-4"
+            >
+              <Undo2 size={14} />
+              元に戻す
+            </button>
+          </AlertDescription>
+        </Alert>
+      ),
+      { duration: 4000 },
+    );
   };
 
   const handleMoveStock = (fromIndex: number, toIndex: number) => {
@@ -309,6 +399,7 @@ export default function BasketsClient({ user }: Props) {
         onClose={() => setIsAddStockModalOpen(false)}
         onAdd={handleAddStock}
       />
+      <Toaster />
     </div>
   );
 }

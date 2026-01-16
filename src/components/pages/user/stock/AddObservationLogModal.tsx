@@ -67,7 +67,7 @@ export function AddObservationLogModal({
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="例: 決算発表を受けて上昇トレンド入り。押し目でエントリー検討。"
-            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px] resize-none"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-30 resize-none"
             autoFocus
           />
         </div>

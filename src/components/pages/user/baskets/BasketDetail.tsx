@@ -28,14 +28,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { fmtLarge } from "@/lib/utilNumber";
 
 export type BasketItemWithInfo = StockBasketItem & {
   name: string;
   market?: string;
-  currentPrice?: number;
-  currentPriceDate?: string;
-  priceChange?: number;
-  priceChangePercent?: number;
+  currentPrice?: number | null;
+  currentPriceDate?: string | null;
+  priceChange?: number | null;
+  priceChangePercent?: number | null;
+  volume?: number | null;
+  prevClose?: number | null;
+  open?: number | null;
+  low?: number | null;
+  high?: number | null;
+  tradingValue?: number | null;
 };
 
 type Props = {
@@ -149,11 +156,29 @@ export function BasketDetail({
                     <TableHead className="hidden sm:table-cell px-2 py-3 w-16 text-center h-auto text-xs font-medium text-slate-500 uppercase">
                       チャート
                     </TableHead>
-                    <TableHead className="px-1 sm:px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                    <TableHead className="px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
                       現在値
                     </TableHead>
-                    <TableHead className="px-1 sm:px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                    <TableHead className="px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
                       前日比
+                    </TableHead>
+                    <TableHead className="px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                      出来高
+                    </TableHead>
+                    <TableHead className="px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                      前日終値
+                    </TableHead>
+                    <TableHead className="px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                      始値
+                    </TableHead>
+                    <TableHead className="px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                      安値
+                    </TableHead>
+                    <TableHead className="px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                      高値
+                    </TableHead>
+                    <TableHead className="px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                      売買代金
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -230,12 +255,18 @@ export function BasketDetail({
                       <TableCell className="hidden sm:table-cell px-2 py-3 text-center">
                         <Link
                           href={`/stock?code=${item.stock_code}`}
-                          className="flex justify-center text-slate-400 hover:text-blue-600 cursor-pointer"
+                          className="flex justify-center cursor-pointer hover:opacity-80 transition-opacity"
                         >
-                          <TrendingUp size={18} />
+                          <img
+                            src={`https://finance.yahoo.co.jp/chart-image-proxy/ex/v1/common/chart/image?code=${item.stock_code}.T&chartSize=50x32`}
+                            alt={`${item.name}のチャート`}
+                            width={100}
+                            height={64}
+                            className="inline-block"
+                          />
                         </Link>
                       </TableCell>
-                      <TableCell className="px-1 sm:px-2 py-3 text-right">
+                      <TableCell className="px-2 py-3 text-right whitespace-nowrap">
                         <div className="font-mono font-medium text-slate-900">
                           {item.currentPrice?.toLocaleString() ?? "---"}
                         </div>
@@ -243,7 +274,7 @@ export function BasketDetail({
                           {item.currentPriceDate ?? "--/--"}
                         </div>
                       </TableCell>
-                      <TableCell className="px-1 sm:px-2 py-3 text-right">
+                      <TableCell className="px-2 py-3 text-right whitespace-nowrap">
                         <div
                           className={`font-mono font-medium ${
                             (item.priceChange ?? 0) > 0
@@ -267,6 +298,42 @@ export function BasketDetail({
                         >
                           {(item.priceChangePercent ?? 0) > 0 ? "+" : ""}
                           {item.priceChangePercent?.toFixed(2) ?? "---"}%
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-3 text-right whitespace-nowrap font-mono text-slate-700">
+                        <div>{item.volume?.toLocaleString() ?? "---"}</div>
+                        <div className="text-[10px] text-slate-400">
+                          {item.currentPriceDate ?? "--/--"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-3 text-right whitespace-nowrap font-mono text-slate-700">
+                        <div>{item.prevClose?.toLocaleString() ?? "---"}</div>
+                        <div className="text-[10px] text-slate-400">
+                          {item.currentPriceDate ?? "--/--"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-3 text-right whitespace-nowrap font-mono text-slate-700">
+                        <div>{item.open?.toLocaleString() ?? "---"}</div>
+                        <div className="text-[10px] text-slate-400">
+                          {item.currentPriceDate ?? "--/--"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-3 text-right whitespace-nowrap font-mono text-slate-700">
+                        <div>{item.low?.toLocaleString() ?? "---"}</div>
+                        <div className="text-[10px] text-slate-400">
+                          {item.currentPriceDate ?? "--/--"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-3 text-right whitespace-nowrap font-mono text-slate-700">
+                        <div>{item.high?.toLocaleString() ?? "---"}</div>
+                        <div className="text-[10px] text-slate-400">
+                          {item.currentPriceDate ?? "--/--"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-3 text-right whitespace-nowrap font-mono text-slate-700">
+                        <div>{fmtLarge(item.tradingValue, "円")}</div>
+                        <div className="text-[10px] text-slate-400">
+                          {item.currentPriceDate ?? "--/--"}
                         </div>
                       </TableCell>
                     </TableRow>

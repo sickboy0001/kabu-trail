@@ -5,6 +5,13 @@ import YahooFinance from "yahoo-finance2";
 // インスタンスを作成
 const yahooFinance = new YahooFinance();
 
+// キャッシュ用のMapとTTL設定 (60秒)
+const stockDetailsCache = new Map<
+  string,
+  { data: StockDetails | null; timestamp: number }
+>();
+const CACHE_TTL = 600 * 1000; // 10分
+
 export interface YahooFinanceApiResponse {
   chart: {
     result: Array<{
@@ -52,6 +59,7 @@ export interface StockDetails {
   high: number | null;
   low: number | null;
   volume: number | null;
+  current_price: number | null;
   updated_at: string;
 }
 //http://localhost:3000/test/stockdetailでテスト可能
@@ -60,7 +68,7 @@ export async function FetchStockData(
   symbol: string,
   startDate: string,
   endDate: string,
-  interval: "1d" | "1wk" | "1mo" = "1d"
+  interval: "1d" | "1wk" | "1mo" = "1d",
 ): Promise<YahooFinanceApiResponse> {
   const baseUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
   const queryParams = new URLSearchParams({
@@ -72,6 +80,7 @@ export async function FetchStockData(
   });
 
   const url = `${baseUrl}?${queryParams.toString()}`;
+  console.log(`[FetchStockData] Fetching URL: ${url}`);
 
   try {
     const response = await fetch(url);
@@ -88,9 +97,17 @@ export async function FetchStockData(
   }
 }
 export async function fetchStockDetails(
-  symbol: string
+  symbol: string,
 ): Promise<StockDetails | null> {
   const currentSymbol = symbol.includes(".") ? symbol : `${symbol}.T`;
+
+  // キャッシュチェック
+  const now = Date.now();
+  const cached = stockDetailsCache.get(currentSymbol);
+  if (cached && now - cached.timestamp < CACHE_TTL) {
+    console.log(`[fetchStockDetails] Cache hit: ${currentSymbol}`);
+    return cached.data;
+  }
 
   try {
     console.log(`[fetchStockDetails] Fetching: ${currentSymbol}`);
@@ -110,7 +127,11 @@ export async function fetchStockDetails(
     const { defaultKeyStatistics, financialData, summaryDetail, price } =
       summary;
 
-    return {
+    // 日付を1日前に設定
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+
+    const result: StockDetails = {
       market_cap: summaryDetail?.marketCap
         ? Math.round(summaryDetail.marketCap / 1_000_000)
         : null,
@@ -145,10 +166,32 @@ export async function fetchStockDetails(
       high: summaryDetail?.dayHigh ?? price?.regularMarketDayHigh ?? null,
       low: summaryDetail?.dayLow ?? price?.regularMarketDayLow ?? null,
       volume: summaryDetail?.volume ?? price?.regularMarketVolume ?? null,
-      updated_at: new Date().toISOString(),
+      current_price: price?.regularMarketPrice ?? null,
+      updated_at: date.toISOString(),
     };
+
+    // キャッシュに保存
+    stockDetailsCache.set(currentSymbol, { data: result, timestamp: now });
+    return result;
   } catch (error: any) {
     console.error(`[fetchStockDetails] Error:`, error.message);
     return null;
   }
+}
+
+export async function fetchMultipleStockDetails(
+  symbols: string[],
+): Promise<Record<string, StockDetails | null>> {
+  console.log(`[fetchMultipleStockDetails] Fetching ${symbols.length} stocks`);
+  const results: Record<string, StockDetails | null> = {};
+
+  // 並列実行で各銘柄のデータを取得
+  await Promise.all(
+    symbols.map(async (symbol) => {
+      const data = await fetchStockDetails(symbol);
+      results[symbol] = data;
+    }),
+  );
+
+  return results;
 }

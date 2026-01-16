@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import StockChart from "@/components/pages/chart/StockChart";
 import { User } from "@supabase/supabase-js";
 import { Search } from "lucide-react";
+import { toast } from "sonner";
 import {
   searchStocks,
   recordStockViewHistory,
@@ -26,6 +27,7 @@ export default function UserStockClient({ user, initialCode }: Props) {
   const [suggestions, setSuggestions] = useState<StockInfo[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentStocks, setRecentStocks] = useState<StockInfo[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -41,7 +43,7 @@ export default function UserStockClient({ user, initialCode }: Props) {
   // 履歴を取得する関数
   const fetchHistory = async () => {
     if (user.id) {
-      const history = await getRecentStockViews(user.id);
+      const history = await getRecentStockViews(user.id, 10);
       setRecentStocks(history);
     }
   };
@@ -95,16 +97,30 @@ export default function UserStockClient({ user, initialCode }: Props) {
     setShowSuggestions(false);
   };
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleInputKeyDown = async (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
     if (e.key === "Enter") {
       e.preventDefault();
       if (suggestions.length > 0 && showSuggestions) {
         const firstItem = listRef.current?.firstElementChild as HTMLElement;
         firstItem?.focus();
       } else if (query.trim()) {
-        // 直接入力での検索実行
-        setCode(query.trim());
-        setShowSuggestions(false);
+        // 直接入力での検索実行（存在チェック）
+        setIsValidating(true);
+        try {
+          const results = await searchStocks(query.trim());
+          if (results.length > 0) {
+            // 完全一致があればそれを、なければ先頭の候補を採用
+            const match =
+              results.find((r) => r.code === query.trim()) || results[0];
+            handleSelect(match);
+          } else {
+            toast.error("該当する銘柄が見つかりませんでした");
+          }
+        } finally {
+          setIsValidating(false);
+        }
       }
     }
   };
@@ -185,15 +201,23 @@ export default function UserStockClient({ user, initialCode }: Props) {
                 onClick={() => handleSelect(s)}
                 className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition-colors border border-slate-200"
               >
-                {s.name}
+                [{s.code}] {s.name}
               </button>
             ))}
           </div>
         )}
       </div>
 
-      <StockDetailInfo code={code} user={user} />
-      <StockChart code={code} />
+      {isValidating ? (
+        <div className="flex justify-center py-20 text-slate-400">
+          読み込み中...
+        </div>
+      ) : (
+        <>
+          <StockDetailInfo code={code} user={user} />
+          <StockChart code={code} />
+        </>
+      )}
     </div>
   );
 }

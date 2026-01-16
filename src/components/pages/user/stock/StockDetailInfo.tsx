@@ -9,9 +9,21 @@ import {
   type StockObservationLog,
 } from "@/services/stocks";
 import { User } from "@supabase/supabase-js";
-import { ShoppingBasket, Plus, ClipboardList } from "lucide-react";
+import {
+  ShoppingBasket,
+  Plus,
+  ClipboardList,
+  ExternalLink,
+} from "lucide-react";
 import { AddToBasketModal } from "./AddToBasketModal";
 import { AddObservationLogModal } from "./AddObservationLogModal";
+import { fmtLarge } from "@/lib/utilNumber";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type Props = {
   code: string;
@@ -31,58 +43,6 @@ const fmt = (
       maximumFractionDigits: fixed,
     }) + unit
   );
-};
-
-// 大きな数値を「兆」「億」「万」で丸めるヘルパー
-const fmtLarge = (
-  val: number | null | undefined,
-  unit: string = "",
-  isMillionYen: boolean = false,
-) => {
-  if (val === null || val === undefined) return "-";
-
-  let num = val;
-  let suffix = unit;
-
-  // 時価総額（百万円単位）の場合の特別処理
-  if (isMillionYen) {
-    num = val * 1000000;
-    suffix = "円";
-  }
-
-  const abs = Math.abs(num);
-
-  if (abs >= 1000000000000) {
-    return (
-      (num / 1000000000000).toLocaleString(undefined, {
-        maximumFractionDigits: 2,
-      }) +
-      "兆" +
-      suffix
-    );
-  }
-  if (abs >= 100000000) {
-    return (
-      (num / 100000000).toLocaleString(undefined, {
-        maximumFractionDigits: 2,
-      }) +
-      "億" +
-      suffix
-    );
-  }
-  if (abs >= 10000) {
-    return (
-      (num / 10000).toLocaleString(undefined, { maximumFractionDigits: 2 }) +
-      "万" +
-      suffix
-    );
-  }
-
-  if (isMillionYen) {
-    return val.toLocaleString() + "百万円";
-  }
-
-  return num.toLocaleString() + suffix;
 };
 
 // 日付フォーマット (MM/DD)
@@ -106,7 +66,7 @@ const InfoItem = ({
   date?: string;
   subLabel?: string;
 }) => (
-  <div className="flex flex-col border-b border-slate-100 py-2 px-1 last:border-0 hover:bg-slate-50 transition-colors">
+  <div className="flex flex-col border-b border-slate-100 py-1 px-1 last:border-0 hover:bg-slate-50 transition-colors">
     <div className="flex justify-between items-baseline gap-2">
       <span className="text-sm text-slate-500 font-medium whitespace-nowrap">
         {label}
@@ -185,7 +145,7 @@ export default function StockDetailInfo({ code, user }: Props) {
     }
   };
 
-  // 観察ログの取得
+  // 監視メモの取得
   const loadLogs = async () => {
     if (user && code) {
       const data = await getStockObservationLogs(user.id, code);
@@ -256,10 +216,20 @@ export default function StockDetailInfo({ code, user }: Props) {
 
           {user && (
             <div className="flex gap-2">
+              <a
+                href={`https://finance.yahoo.co.jp/quote/${code}.T`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 shrink-0"
+                title="Yahoo!ファイナンスで確認"
+              >
+                <ExternalLink size={16} />
+                <span className="hidden sm:inline">Yahoo</span>
+              </a>
               <button
                 onClick={() => setIsLogModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 shrink-0"
-                title="観察ログを追加"
+                title="監視メモを追加"
               >
                 <ClipboardList size={16} />
                 <span className="hidden sm:inline">ログ記録</span>
@@ -304,7 +274,7 @@ export default function StockDetailInfo({ code, user }: Props) {
         </div>
       ) : (
         <>
-          <div className="mb-6">
+          <div className="mb-3">
             <h4 className="text-base font-bold text-slate-500 mb-2 bg-slate-50 px-2 py-1 rounded inline-block">
               株価情報
             </h4>
@@ -338,104 +308,120 @@ export default function StockDetailInfo({ code, user }: Props) {
           </div>
 
           <div>
-            <h4 className="text-base font-bold text-slate-500 mb-2 bg-slate-50 px-2 py-1 rounded inline-block">
-              参考指標
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-1">
-              <InfoItem
-                label="時価総額"
-                value={data.marketCap.value}
-                date={data.marketCap.date}
-              />
-              <InfoItem
-                label="発行済株式数"
-                value={data.sharesIssued.value}
-                date={data.sharesIssued.date}
-              />
-              <InfoItem label="単元株数" value={data.unitShares.value} />
-              <InfoItem
-                label="配当利回り"
-                subLabel="（会社予想）"
-                value={data.dividendYield.value}
-                date={data.dividendYield.date}
-              />
-              <InfoItem
-                label="1株配当"
-                subLabel="（会社予想）"
-                value={data.dividendPerShare.value}
-                date={data.dividendPerShare.date}
-              />
-              <InfoItem
-                label="PER"
-                subLabel="（会社予想）"
-                value={data.per.value}
-                date={data.per.date}
-              />
-              <InfoItem
-                label="PBR"
-                subLabel="（実績）"
-                value={data.pbr.value}
-                date={data.pbr.date}
-              />
-              <InfoItem
-                label="EPS"
-                subLabel="（会社予想）"
-                value={data.eps.value}
-                date={data.eps.date}
-              />
-              <InfoItem
-                label="BPS"
-                subLabel="（実績）"
-                value={data.bps.value}
-              />
-              <InfoItem
-                label="ROE"
-                subLabel="（実績）"
-                value={data.roe.value}
-              />
-              <InfoItem
-                label="自己資本比率"
-                subLabel="（実績）"
-                value={data.equityRatio.value}
-              />
-              <InfoItem
-                label="最低購入代金"
-                value={data.minPurchasePrice.value}
-                date={data.minPurchasePrice.date}
-              />
-              <InfoItem
-                label="年初来高値"
-                value={data.ytdHigh.value}
-                date={data.ytdHigh.date}
-              />
-              <InfoItem
-                label="年初来安値"
-                value={data.ytdLow.value}
-                date={data.ytdLow.date}
-              />
-            </div>
+            <Accordion type="single" collapsible className="w-full border-none">
+              <AccordionItem value="metrics" className="border-none">
+                <AccordionTrigger className="py-2 hover:no-underline justify-start gap-2">
+                  <h4 className="text-base font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded inline-block">
+                    参考指標
+                  </h4>
+                </AccordionTrigger>
+                <AccordionContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-1 pt-2">
+                  <InfoItem
+                    label="時価総額"
+                    value={data.marketCap.value}
+                    date={data.marketCap.date}
+                  />
+                  <InfoItem
+                    label="発行済株式数"
+                    value={data.sharesIssued.value}
+                    date={data.sharesIssued.date}
+                  />
+                  <InfoItem label="単元株数" value={data.unitShares.value} />
+                  <InfoItem
+                    label="配当利回り"
+                    subLabel="（会社予想）"
+                    value={data.dividendYield.value}
+                    date={data.dividendYield.date}
+                  />
+                  <InfoItem
+                    label="1株配当"
+                    subLabel="（会社予想）"
+                    value={data.dividendPerShare.value}
+                    date={data.dividendPerShare.date}
+                  />
+                  <InfoItem
+                    label="PER"
+                    subLabel="（会社予想）"
+                    value={data.per.value}
+                    date={data.per.date}
+                  />
+                  <InfoItem
+                    label="PBR"
+                    subLabel="（実績）"
+                    value={data.pbr.value}
+                    date={data.pbr.date}
+                  />
+                  <InfoItem
+                    label="EPS"
+                    subLabel="（会社予想）"
+                    value={data.eps.value}
+                    date={data.eps.date}
+                  />
+                  <InfoItem
+                    label="BPS"
+                    subLabel="（実績）"
+                    value={data.bps.value}
+                  />
+                  <InfoItem
+                    label="ROE"
+                    subLabel="（実績）"
+                    value={data.roe.value}
+                  />
+                  <InfoItem
+                    label="自己資本比率"
+                    subLabel="（実績）"
+                    value={data.equityRatio.value}
+                  />
+                  <InfoItem
+                    label="最低購入代金"
+                    value={data.minPurchasePrice.value}
+                    date={data.minPurchasePrice.date}
+                  />
+                  <InfoItem
+                    label="年初来高値"
+                    value={data.ytdHigh.value}
+                    date={data.ytdHigh.date}
+                  />
+                  <InfoItem
+                    label="年初来安値"
+                    value={data.ytdLow.value}
+                    date={data.ytdLow.date}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
 
           {logs.length > 0 && (
-            <div className="mt-6 border-t border-slate-100 pt-4">
-              <h4 className="text-base font-bold text-slate-500 mb-3 bg-slate-50 px-2 py-1 rounded inline-block">
-                観察ログ
-              </h4>
-              <div className="space-y-3">
-                {logs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="bg-slate-50 p-3 rounded-lg border border-slate-100"
-                  >
-                    <div className="text-xs text-slate-400 mb-1">
-                      {fmtDate(log.date)}
-                    </div>
-                    <div className="text-sm text-slate-700 whitespace-pre-wrap">
-                      {log.content}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-3 border-t border-slate-100 pt-2">
+              <Accordion
+                type="single"
+                collapsible
+                className="w-full border-none"
+              >
+                <AccordionItem value="logs" className="border-none">
+                  <AccordionTrigger className="py-2 hover:no-underline justify-start gap-2">
+                    <h4 className="text-base font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded inline-block">
+                      監視メモ
+                    </h4>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1">
+                    {logs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex gap-3 items-start py-2 border-b border-slate-100 last:border-0"
+                      >
+                        <div className="text-xs text-slate-400 whitespace-nowrap pt-0.5 font-mono">
+                          {fmtDate(log.date)}
+                        </div>
+                        <div className="text-sm text-slate-700 whitespace-pre-wrap leading-snug">
+                          {log.content}
+                        </div>
+                      </div>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           )}
         </>
