@@ -331,7 +331,7 @@ export default function AccountListClient({ user }: Props) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-slate-800">資産推移</h1>
       </div>
@@ -367,7 +367,7 @@ export default function AccountListClient({ user }: Props) {
                 const prev =
                   index > 0
                     ? parseBalance(
-                        filteredCashBalanceHistory[index - 1].balanceMRF
+                        filteredCashBalanceHistory[index - 1].balanceMRF,
                       )
                     : null;
                 let trend = null;
@@ -393,8 +393,8 @@ export default function AccountListClient({ user }: Props) {
                         item.amount.startsWith("+")
                           ? "text-green-600"
                           : item.amount.startsWith("-")
-                          ? "text-red-600"
-                          : ""
+                            ? "text-red-600"
+                            : ""
                       }`}
                     >
                       {item.amount}
@@ -412,8 +412,8 @@ export default function AccountListClient({ user }: Props) {
                             trend === "up"
                               ? "text-green-600"
                               : trend === "down"
-                              ? "text-red-600"
-                              : ""
+                                ? "text-red-600"
+                                : ""
                           }
                         >
                           {item.balanceMRF}

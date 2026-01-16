@@ -1,4 +1,5 @@
 import { MouseEvent } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -7,6 +8,7 @@ import {
   Trash2,
   RefreshCcw,
   MessageSquarePlus,
+  TrendingUp,
 } from "lucide-react";
 import { type StockInfo } from "@/services/stocks";
 
@@ -47,7 +49,17 @@ export function ObservationLogCard({
     >
       {/* 操作ボタンエリア */}
       {log.isActive && (
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10 bg-white/90 rounded-full p-0.5 shadow-sm border border-slate-100">
+        <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10 bg-white/90 rounded-full p-0.5 shadow-sm border border-slate-100">
+          {log.stocks.length > 0 && (
+            <Link
+              href={`/stock?code=${log.stocks[0].code}`}
+              onClick={(e) => e.stopPropagation()}
+              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+              title="チャート画面へ"
+            >
+              <TrendingUp size={14} />
+            </Link>
+          )}
           <button
             onClick={(e) => onEdit(e, log)}
             className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"

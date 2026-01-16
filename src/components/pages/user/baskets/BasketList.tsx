@@ -20,7 +20,7 @@ export function BasketList({
 }: Props) {
   return (
     <aside className="w-full min-w-0">
-      <div className="flex overflow-x-auto pb-4 sm:pb-0 gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-1 snap-x sm:snap-none">
+      <div className="grid grid-cols-1 gap-3">
         {isLoading ? (
           <div className="col-span-full text-center py-4 text-slate-400 text-sm w-full">
             読み込み中...
@@ -32,7 +32,7 @@ export function BasketList({
                 key={basket.id}
                 onClick={() => onSelect(basket.id)}
                 className={`
-                  shrink-0 w-72 sm:w-auto snap-center
+                  w-full sm:w-72
                   p-3 rounded-lg cursor-pointer transition-all border group 
                   ${
                     selectedBasketId === basket.id
@@ -84,7 +84,7 @@ export function BasketList({
                       className="p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
                       title="上に移動"
                     >
-                      <ChevronUp size={14} className="-rotate-90 sm:rotate-0" />
+                      <ChevronUp size={14} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -95,10 +95,7 @@ export function BasketList({
                       className="p-0.5 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
                       title="下に移動"
                     >
-                      <ChevronDown
-                        size={14}
-                        className="-rotate-90 sm:rotate-0"
-                      />
+                      <ChevronDown size={14} />
                     </button>
                   </div>
                 </div>
@@ -106,7 +103,7 @@ export function BasketList({
             ))}
             <button
               onClick={onCreate}
-              className="shrink-0 w-72 sm:w-auto snap-center flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-slate-300 text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all min-h-[80px]"
+              className="w-full sm:w-72 flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-slate-300 text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all min-h-20"
             >
               <Plus size={24} />
               <span className="text-sm font-medium">新規バスケット</span>

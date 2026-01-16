@@ -250,7 +250,7 @@ export default function BasketsClient({ user }: Props) {
   const selectedBasket = baskets.find((b) => b.id === selectedBasketId) || null;
 
   return (
-    <div className="space-y-4 pt-10">
+    <div className="space-y-6 w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
         <div>
           <div className="flex items-center gap-4">
@@ -264,9 +264,9 @@ export default function BasketsClient({ user }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 min-h-[500px]">
+      <div className="flex flex-col lg:flex-row gap-6 min-h-125">
         {/* Sidebar: Basket List */}
-        <div className="w-full lg:w-72 flex-shrink-0">
+        <div className="w-full lg:w-72 shrink-0">
           <BasketList
             baskets={baskets}
             selectedBasketId={selectedBasketId}
@@ -279,8 +279,6 @@ export default function BasketsClient({ user }: Props) {
             }}
           />
         </div>
-
-        {/* Main Content: Selected Basket Details */}
         <main className="flex-1 min-w-0">
           <BasketDetail
             basket={selectedBasket}

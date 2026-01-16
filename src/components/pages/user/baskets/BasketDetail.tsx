@@ -20,6 +20,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StockBasket, StockBasketItem } from "@/services/baskets";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export type BasketItemWithInfo = StockBasketItem & {
   name: string;
@@ -56,7 +64,7 @@ export function BasketDetail({
 
   if (!basket) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 min-h-100">
+      <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 min-h-96">
         <ShoppingBasket size={48} className="mb-4 opacity-20" />
         <p>バスケットを選択するか、新規作成してください</p>
       </div>
@@ -127,31 +135,40 @@ export function BasketDetail({
           </div>
         ) : (
           <>
-            {/* PC向けテーブル表示 */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm text-left border-collapse">
-                <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-2 py-3 w-8"></th>
-                    <th className="px-2 py-3 w-16 text-center">操作</th>
-                    <th className="px-2 py-3 min-w-45">コード・市場・名称</th>
-                    <th className="px-2 py-3 w-16 text-center">チャート</th>
-                    <th className="px-2 py-3 text-right min-w-25">現在値</th>
-                    <th className="px-2 py-3 text-right min-w-25">前日比</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="px-1 sm:px-2 py-3 w-8 h-auto"></TableHead>
+                    <TableHead className="px-1 sm:px-2 py-3 w-10 text-center h-auto text-xs font-medium text-slate-500 uppercase">
+                      操作
+                    </TableHead>
+                    <TableHead className="px-1 sm:px-2 py-3 min-w-30 sm:min-w-45 h-auto text-xs font-medium text-slate-500 uppercase">
+                      コード・市場・名称
+                    </TableHead>
+                    <TableHead className="hidden sm:table-cell px-2 py-3 w-16 text-center h-auto text-xs font-medium text-slate-500 uppercase">
+                      チャート
+                    </TableHead>
+                    <TableHead className="px-1 sm:px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                      現在値
+                    </TableHead>
+                    <TableHead className="px-1 sm:px-2 py-3 text-right whitespace-nowrap h-auto text-xs font-medium text-slate-500 uppercase">
+                      前日比
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {items.map((item, index) => (
-                    <tr
+                    <TableRow
                       key={item.id}
                       draggable
                       onDragStart={(e) => {
                         setDraggedIndex(index);
-                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.effectAllowed = "move" as const;
                       }}
                       onDragOver={(e) => {
                         e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
+                        e.dataTransfer.dropEffect = "move" as const;
                         if (draggedIndex !== null && draggedIndex !== index) {
                           setDragOverIndex(index);
                         }
@@ -168,7 +185,7 @@ export function BasketDetail({
                         setDraggedIndex(null);
                         setDragOverIndex(null);
                       }}
-                      className={`bg-white hover:bg-slate-50 transition-colors group ${
+                      className={`group hover:bg-slate-50 ${
                         draggedIndex === index ? "opacity-50 bg-blue-50" : ""
                       } ${
                         dragOverIndex === index && draggedIndex !== index
@@ -176,12 +193,12 @@ export function BasketDetail({
                           : ""
                       }`}
                     >
-                      <td className="px-2 py-3 text-center">
+                      <TableCell className="px-1 sm:px-2 py-3 text-center">
                         <div className="cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing flex justify-center">
                           <GripVertical size={16} />
                         </div>
-                      </td>
-                      <td className="px-2 py-3">
+                      </TableCell>
+                      <TableCell className="px-1 sm:px-2 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => onRemoveStock(item.id)}
@@ -191,8 +208,8 @@ export function BasketDetail({
                             <Trash2 size={14} />
                           </button>
                         </div>
-                      </td>
-                      <td className="px-2 py-3">
+                      </TableCell>
+                      <TableCell className="px-1 sm:px-2 py-3">
                         <Link
                           href={`/stock?code=${item.stock_code}`}
                           className="flex flex-col group/link"
@@ -205,35 +222,35 @@ export function BasketDetail({
                               {item.market || "東証"}
                             </span>
                           </div>
-                          <span className="text-slate-700 font-medium truncate max-w-50 group-hover/link:text-blue-600 group-hover/link:underline">
+                          <span className="text-slate-700 font-medium line-clamp-1 sm:truncate max-w-30 sm:max-w-45 group-hover/link:text-blue-600 group-hover/link:underline">
                             {item.name}
                           </span>
                         </Link>
-                      </td>
-                      <td className="px-2 py-3 text-center">
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell px-2 py-3 text-center">
                         <Link
                           href={`/stock?code=${item.stock_code}`}
                           className="flex justify-center text-slate-400 hover:text-blue-600 cursor-pointer"
                         >
                           <TrendingUp size={18} />
                         </Link>
-                      </td>
-                      <td className="px-2 py-3 text-right">
+                      </TableCell>
+                      <TableCell className="px-1 sm:px-2 py-3 text-right">
                         <div className="font-mono font-medium text-slate-900">
                           {item.currentPrice?.toLocaleString() ?? "---"}
                         </div>
                         <div className="text-[10px] text-slate-400">
                           {item.currentPriceDate ?? "--/--"}
                         </div>
-                      </td>
-                      <td className="px-2 py-3 text-right">
+                      </TableCell>
+                      <TableCell className="px-1 sm:px-2 py-3 text-right">
                         <div
                           className={`font-mono font-medium ${
                             (item.priceChange ?? 0) > 0
                               ? "text-red-600"
                               : (item.priceChange ?? 0) < 0
-                              ? "text-green-600"
-                              : "text-slate-500"
+                                ? "text-green-600"
+                                : "text-slate-500"
                           }`}
                         >
                           {(item.priceChange ?? 0) > 0 ? "+" : ""}
@@ -244,94 +261,18 @@ export function BasketDetail({
                             (item.priceChangePercent ?? 0) > 0
                               ? "text-red-600"
                               : (item.priceChangePercent ?? 0) < 0
-                              ? "text-green-600"
-                              : "text-slate-500"
+                                ? "text-green-600"
+                                : "text-slate-500"
                           }`}
                         >
                           {(item.priceChangePercent ?? 0) > 0 ? "+" : ""}
                           {item.priceChangePercent?.toFixed(2) ?? "---"}%
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* スマホ向けカード表示 */}
-            <div className="md:hidden space-y-3">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-3"
-                >
-                  <div className="flex justify-between items-start">
-                    <Link
-                      href={`/stock?code=${item.stock_code}`}
-                      className="flex-1 group/link"
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono font-bold text-slate-900 group-hover/link:text-blue-600 group-hover/link:underline">
-                          {item.stock_code}
-                        </span>
-                        <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded border border-slate-200">
-                          {item.market || "東証"}
-                        </span>
-                      </div>
-                      <span className="text-slate-700 font-medium line-clamp-1 group-hover/link:text-blue-600 group-hover/link:underline">
-                        {item.name}
-                      </span>
-                    </Link>
-                    <div className="flex items-center gap-1">
-                      <Link
-                        href={`/stock?code=${item.stock_code}`}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                      >
-                        <TrendingUp size={18} />
-                      </Link>
-                      <button
-                        onClick={() => onRemoveStock(item.id)}
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-end border-t border-slate-100 pt-2">
-                    <div>
-                      <div className="text-xs text-slate-400 mb-0.5">
-                        現在値
-                      </div>
-                      <div className="font-mono font-medium text-lg text-slate-900">
-                        {item.currentPrice?.toLocaleString() ?? "---"}
-                        <span className="text-xs text-slate-400 ml-1 font-normal">
-                          円
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-slate-400 mb-0.5">
-                        前日比
-                      </div>
-                      <div
-                        className={`font-mono font-medium ${
-                          (item.priceChange ?? 0) > 0
-                            ? "text-red-600"
-                            : (item.priceChange ?? 0) < 0
-                            ? "text-green-600"
-                            : "text-slate-500"
-                        }`}
-                      >
-                        {(item.priceChange ?? 0) > 0 ? "+" : ""}
-                        {item.priceChange?.toLocaleString() ?? "---"} (
-                        {(item.priceChangePercent ?? 0) > 0 ? "+" : ""}
-                        {item.priceChangePercent?.toFixed(2) ?? "---"}%)
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                </TableBody>
+              </Table>
             </div>
           </>
         )}

@@ -38,7 +38,7 @@ const getTodayString = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
     2,
-    "0"
+    "0",
   )}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
@@ -114,7 +114,7 @@ export default function ObservationLogsClient({ user }: Props) {
   // Undo用状態
   const [undoLogId, setUndoLogId] = useState<number | null>(null);
   const [undoAction, setUndoAction] = useState<"delete" | "reactivate" | null>(
-    null
+    null,
   );
 
   // 編集モード開始
@@ -251,8 +251,8 @@ export default function ObservationLogsClient({ user }: Props) {
         log.stocks.some(
           (s) =>
             s.code.toLowerCase().includes(lowerFilter) ||
-            s.name.toLowerCase().includes(lowerFilter)
-        )
+            s.name.toLowerCase().includes(lowerFilter),
+        ),
       );
     }
 
@@ -273,7 +273,7 @@ export default function ObservationLogsClient({ user }: Props) {
   }, [logs, showInactive, filterStockText, sortKey]);
 
   return (
-    <div className="space-y-4 pt-10">
+    <div className="space-y-6 w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
         <div>
           <div className="flex items-center gap-4">
@@ -297,7 +297,6 @@ export default function ObservationLogsClient({ user }: Props) {
           新規メモ
         </button>
       </div>
-
       {/* フィルター・ソートエリア */}
       <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
         <div className="flex items-center gap-2">
@@ -344,7 +343,6 @@ export default function ObservationLogsClient({ user }: Props) {
           <span className="text-sm text-slate-600">削除済み(無効)も含める</span>
         </label>
       </div>
-
       {/* Google Keep風グリッドレイアウト */}
       {isLoading ? (
         <div className="text-center py-10 text-slate-500">読み込み中...</div>
@@ -364,7 +362,6 @@ export default function ObservationLogsClient({ user }: Props) {
           ))}
         </div>
       )}
-
       {/* Undoトースト (右下固定) */}
       {undoLogId !== null && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
@@ -384,7 +381,6 @@ export default function ObservationLogsClient({ user }: Props) {
           </div>
         </div>
       )}
-
       {/* 新規作成モーダル */}
       <ObservationLogModal
         isOpen={isModalOpen}

@@ -111,7 +111,7 @@ export default function UserStockClient({ user, initialCode }: Props) {
 
   const handleItemKeyDown = (
     e: React.KeyboardEvent<HTMLLIElement>,
-    stock: StockInfo
+    stock: StockInfo,
   ) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -132,7 +132,7 @@ export default function UserStockClient({ user, initialCode }: Props) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 w-full">
       <div className="flex flex-col lg:flex-row gap-4 items-start">
         <div className="relative w-full max-w-md shrink-0" ref={containerRef}>
           <div className="relative">
