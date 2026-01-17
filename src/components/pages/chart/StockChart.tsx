@@ -7,16 +7,58 @@ import {
   CandlestickSeries,
   HistogramSeries,
   UTCTimestamp,
+  ISeriesApi,
+  IChartApi,
 } from "lightweight-charts";
 import { FetchStockData } from "@/lib/stockApi";
+import { useMovingAverage } from "./hooks/useMovingAverage";
+import { useMACD } from "./hooks/useMACD";
 
 type Props = {
   code: string;
 };
 
+type ChartData = {
+  time: UTCTimestamp;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
+
 export default function StockChart({ code }: Props) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [interval, setInterval] = useState<"1d" | "1wk" | "1mo">("1d");
+  const [showMA, setShowMA] = useState(true);
+  const [showMACD, setShowMACD] = useState(false);
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+
+  const chartRef = useRef<IChartApi | null>(null);
+  const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+
+  // ツールチップやuseEffect内で最新の状態を参照するためのRef
+  const showMARef = useRef(showMA);
+  const showMACDRef = useRef(showMACD);
+
+  // カスタムフックの使用
+  const { ma5SeriesRef, ma25SeriesRef, ma75SeriesRef } = useMovingAverage(
+    chartRef.current,
+    chartData,
+    showMA,
+  );
+  const { macdSeriesRef, signalSeriesRef, macdHistSeriesRef } = useMACD(
+    chartRef.current,
+    volumeSeriesRef.current,
+    chartData,
+    showMACD,
+  );
+
+  useEffect(() => {
+    showMARef.current = showMA;
+    showMACDRef.current = showMACD;
+  }, [showMA, showMACD]);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -34,6 +76,7 @@ export default function StockChart({ code }: Props) {
         horzLines: { color: "#e2e8f0" },
       },
     });
+    chartRef.current = chart;
 
     // 2. シリーズ（データの種類）の追加：ローソク足
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
@@ -43,6 +86,7 @@ export default function StockChart({ code }: Props) {
       wickUpColor: "#26a69a",
       wickDownColor: "#ef5350",
     });
+    candlestickSeriesRef.current = candlestickSeries;
 
     // 出来高（ヒストグラム）を追加
     const volumeSeries = chart.addSeries(HistogramSeries, {
@@ -52,20 +96,7 @@ export default function StockChart({ code }: Props) {
       },
       priceScaleId: "", // オーバーレイとして設定
     });
-
-    // レイアウト調整：ローソク足を上部に、出来高を下部に表示
-    chart.priceScale("right").applyOptions({
-      scaleMargins: {
-        top: 0.1,
-        bottom: 0.3, // 下部30%を空ける
-      },
-    });
-    volumeSeries.priceScale().applyOptions({
-      scaleMargins: {
-        top: 0.8, // 上部80%を空ける（下部20%を使用）
-        bottom: 0,
-      },
-    });
+    volumeSeriesRef.current = volumeSeries;
 
     // ツールチップの作成
     const toolTip = document.createElement("div");
@@ -105,7 +136,7 @@ export default function StockChart({ code }: Props) {
         toolTip.style.display = "none";
       } else {
         const dateStr = new Date(
-          (param.time as number) * 1000
+          (param.time as number) * 1000,
         ).toLocaleDateString();
         const candleData = param.seriesData.get(candlestickSeries) as
           | { open: number; high: number; low: number; close: number }
@@ -113,17 +144,63 @@ export default function StockChart({ code }: Props) {
         const volumeData = param.seriesData.get(volumeSeries) as
           | { value: number }
           | undefined;
+        const ma5Data = (ma5SeriesRef.current &&
+          param.seriesData.get(ma5SeriesRef.current)) as
+          | { value: number }
+          | undefined;
+        const ma25Data = (ma25SeriesRef.current &&
+          param.seriesData.get(ma25SeriesRef.current)) as
+          | { value: number }
+          | undefined;
+        const ma75Data = (ma75SeriesRef.current &&
+          param.seriesData.get(ma75SeriesRef.current)) as
+          | { value: number }
+          | undefined;
+        const macdData = (macdSeriesRef.current &&
+          param.seriesData.get(macdSeriesRef.current)) as
+          | { value: number }
+          | undefined;
+        const signalData = (signalSeriesRef.current &&
+          param.seriesData.get(signalSeriesRef.current)) as
+          | { value: number }
+          | undefined;
+        const histData = (macdHistSeriesRef.current &&
+          param.seriesData.get(macdHistSeriesRef.current)) as
+          | { value: number }
+          | undefined;
 
         if (candleData) {
           const high = candleData.high.toFixed(1);
           const low = candleData.low.toFixed(1);
           const volume = volumeData ? volumeData.value.toLocaleString() : "N/A";
+          const ma5 = ma5Data ? ma5Data.value.toFixed(1) : "-";
+          const ma25 = ma25Data ? ma25Data.value.toFixed(1) : "-";
+          const ma75 = ma75Data ? ma75Data.value.toFixed(1) : "-";
+          const macdVal = macdData ? macdData.value.toFixed(2) : "-";
+          const signalVal = signalData ? signalData.value.toFixed(2) : "-";
+          const histVal = histData ? histData.value.toFixed(2) : "-";
+
+          const maHtml = showMARef.current
+            ? `<div style="color: #9C27B0">MA5: ${ma5}</div>
+               <div style="color: #2962FF">MA25: ${ma25}</div>
+               <div style="color: #FF6D00">MA75: ${ma75}</div>`
+            : "";
+
+          const macdHtml = showMACDRef.current
+            ? `<div style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px;">
+                 <div style="color: #2962FF">MACD: ${macdVal}</div>
+                 <div style="color: #FF6D00">Signal: ${signalVal}</div>
+                 <div style="color: #888">Hist: ${histVal}</div>
+               </div>`
+            : "";
 
           toolTip.innerHTML = `
             <div style="font-weight: bold; margin-bottom: 4px;">${dateStr}</div>
             <div>高値: ${high}</div>
             <div>安値: ${low}</div>
             <div>出来高: ${volume}</div>
+            ${maHtml}
+            ${macdHtml}
           `;
 
           const toolTipWidth = toolTip.offsetWidth;
@@ -170,7 +247,7 @@ export default function StockChart({ code }: Props) {
           symbol,
           startDate.toISOString(),
           endDate.toISOString(),
-          interval
+          interval,
         );
 
         const result = data.chart.result[0];
@@ -197,7 +274,7 @@ export default function StockChart({ code }: Props) {
           }))
           .filter(
             (
-              item
+              item,
             ): item is {
               time: UTCTimestamp;
               open: number;
@@ -210,25 +287,32 @@ export default function StockChart({ code }: Props) {
               item.high != null &&
               item.low != null &&
               item.close != null &&
-              item.volume != null
+              item.volume != null,
           ); // nullデータを除外
 
-        candlestickSeries.setData(
-          validData.map((d) => ({
-            time: d.time,
-            open: d.open,
-            high: d.high,
-            low: d.low,
-            close: d.close,
-          }))
-        );
-        volumeSeries.setData(
-          validData.map((d) => ({
-            time: d.time,
-            value: d.volume,
-            color: d.close >= d.open ? "#26a69a" : "#ef5350", // 上昇は緑、下落は赤
-          }))
-        );
+        setChartData(validData);
+
+        if (candlestickSeriesRef.current) {
+          candlestickSeriesRef.current.setData(
+            validData.map((d) => ({
+              time: d.time,
+              open: d.open,
+              high: d.high,
+              low: d.low,
+              close: d.close,
+            })),
+          );
+        }
+
+        if (volumeSeriesRef.current) {
+          volumeSeriesRef.current.setData(
+            validData.map((d) => ({
+              time: d.time,
+              value: d.volume,
+              color: d.close >= d.open ? "#26a69a" : "#ef5350", // 上昇は緑、下落は赤
+            })),
+          );
+        }
       } catch (error) {
         console.error("Chart data loading error:", error);
       }
@@ -254,7 +338,25 @@ export default function StockChart({ code }: Props) {
 
   return (
     <div className="w-full bg-white p-4 rounded-lg shadow-sm border">
-      <div className="flex justify-end gap-2 mb-2">
+      <div className="flex justify-end gap-2 mb-2 items-center">
+        <label className="flex items-center gap-1 text-sm text-slate-600 cursor-pointer mr-2 select-none">
+          <input
+            type="checkbox"
+            checked={showMA}
+            onChange={(e) => setShowMA(e.target.checked)}
+            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          移動平均線
+        </label>
+        <label className="flex items-center gap-1 text-sm text-slate-600 cursor-pointer mr-2 select-none">
+          <input
+            type="checkbox"
+            checked={showMACD}
+            onChange={(e) => setShowMACD(e.target.checked)}
+            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          MACD
+        </label>
         <button
           onClick={() => setInterval("1d")}
           className={`px-3 py-1 text-sm rounded transition-colors ${
