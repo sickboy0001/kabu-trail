@@ -119,9 +119,12 @@ git push origin main
 
 ## todo
 
-- [ ] MacDの表示
-- [ ] 移動平均線
+- [x] MacDの表示
+- [x] 移動平均線
 - [x] Toastでの通知（Backets削除）
+- [ ] インの登録・口座指定・コメント入力
+- [ ] アウトの登録・口座指定・コメント入力・INとの紐づけ
+- [ ] アウトの登録　手数料など付与して
 
 
 ## Getting Started
