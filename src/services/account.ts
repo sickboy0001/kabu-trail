@@ -17,7 +17,7 @@ export const insertAccount = async (payload: AccountPayload) => {
 
 export const updateAccount = async (
   id: number,
-  payload: Partial<AccountPayload>
+  payload: Partial<AccountPayload>,
 ) => {
   const { error } = await supabase
     .from("broker_accounts")
@@ -39,21 +39,21 @@ export const getBrokers = async () => {
   if (brokersResult.error) {
     console.error(
       "Error fetching brokers:",
-      JSON.stringify(brokersResult.error, null, 2)
+      JSON.stringify(brokersResult.error, null, 2),
     );
     throw brokersResult.error;
   }
   if (templatesResult.error) {
     console.error(
       "Error fetching fee_templates:",
-      JSON.stringify(templatesResult.error, null, 2)
+      JSON.stringify(templatesResult.error, null, 2),
     );
     throw templatesResult.error;
   }
   if (rulesResult.error) {
     console.error(
       "Error fetching fee_rules:",
-      JSON.stringify(rulesResult.error, null, 2)
+      JSON.stringify(rulesResult.error, null, 2),
     );
     throw rulesResult.error;
   }
@@ -84,7 +84,7 @@ export const getUserAccounts = async (userId: string) => {
       sort_order,
       template_id,
       category
-    `
+    `,
     )
     .eq("user_id", userId)
     .order("sort_order", { ascending: true });
@@ -92,7 +92,7 @@ export const getUserAccounts = async (userId: string) => {
   if (error) {
     console.error(
       "Error fetching broker accounts:",
-      JSON.stringify(error, null, 2)
+      JSON.stringify(error, null, 2),
     );
     throw error;
   }
@@ -123,3 +123,71 @@ export const deleteAccount = async (id: number) => {
     .eq("id", id);
   if (error) throw error;
 };
+export type BrokerAccount = {
+  id: number;
+  name: string;
+  category: string | null;
+  brokerName?: string;
+  feeTemplateName?: string | null;
+};
+
+export async function fetchBrokerAccounts(
+  userId: string,
+): Promise<BrokerAccount[]> {
+  const { data: accounts, error: accountsError } = await supabase
+    .from("broker_accounts")
+    .select("*")
+    .eq("user_id", userId)
+    .order("sort_order", { ascending: true });
+
+  if (accountsError) {
+    console.error("Error fetching broker accounts:", accountsError);
+    return [];
+  }
+
+  if (!accounts || accounts.length === 0) return [];
+
+  // 関連データのIDを収集
+  const brokerIds = Array.from(
+    new Set(accounts.map((a) => a.broker_id).filter((id) => id != null)),
+  ) as number[];
+  const templateIds = Array.from(
+    new Set(accounts.map((a) => a.template_id).filter((id) => id != null)),
+  ) as number[];
+
+  // 関連データを並列取得
+  const [brokersResult, templatesResult] = await Promise.all([
+    brokerIds.length > 0
+      ? supabase.from("brokers").select("id, name").in("id", brokerIds)
+      : { data: [], error: null },
+    templateIds.length > 0
+      ? supabase.from("fee_templates").select("id, name").in("id", templateIds)
+      : { data: [], error: null },
+  ]);
+
+  const brokersMap = new Map(
+    brokersResult.data?.map((b) => [b.id, b.name]) || [],
+  );
+  const templatesMap = new Map(
+    templatesResult.data?.map((t) => [t.id, t.name]) || [],
+  );
+
+  const formattedAccounts: BrokerAccount[] = accounts.map((account) => ({
+    id: account.id,
+    name: account.name,
+    category: account.category,
+    brokerName: account.broker_id
+      ? brokersMap.get(account.broker_id)
+      : undefined,
+    feeTemplateName: account.template_id
+      ? templatesMap.get(account.template_id)
+      : undefined,
+  }));
+
+  return formattedAccounts.sort((a, b) => {
+    const aHasCat = !!a.category;
+    const bHasCat = !!b.category;
+    if (aHasCat === bHasCat) return 0;
+    return aHasCat ? 1 : -1;
+  });
+}

@@ -231,7 +231,7 @@ export default function AccountListClient({ userId }: Props) {
 
   // 選択中の証券会社データ
   const selectedBroker = brokers.find(
-    (b) => b.id.toString() === formData.broker_id
+    (b) => b.id.toString() === formData.broker_id,
   );
 
   return (
@@ -256,7 +256,7 @@ export default function AccountListClient({ userId }: Props) {
               // 紐付いている手数料プラン情報を取得
               const broker = brokers.find((b) => b.id === account.broker_id);
               const template = broker?.fee_templates?.find(
-                (t) => t.id === account.template_id
+                (t) => t.id === account.template_id,
               );
 
               return (
@@ -323,6 +323,16 @@ export default function AccountListClient({ userId }: Props) {
                           className="text-sm text-blue-600 hover:underline"
                         >
                           編集
+                        </button>
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/settings/importTransactions?accountId=${account.id}`,
+                            )
+                          }
+                          className="text-sm text-green-600 hover:underline"
+                        >
+                          インポート
                         </button>
                         <button
                           onClick={() => handleDelete(account.id)}

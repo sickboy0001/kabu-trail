@@ -127,6 +127,11 @@ git push origin main
 - [ ] アウトの登録　手数料など付与して
 
 
+## 
+node_modules/
+dist/
+build/
+*.log
 ## Getting Started
 
 First, run the development server:

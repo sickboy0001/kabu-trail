@@ -17,21 +17,18 @@ import {
   LogOut,
   FileSpreadsheet,
   ShoppingBasket,
+  Banknote,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const menuItems = [
   { name: "ダッシュボード", href: "/dashboard", icon: LayoutDashboard },
-  { name: "取引履歴", href: "/cashflows", icon: History },
-  // 証券売買: 売り買いの交換をイメージ
-  { name: "証券売買", href: "/positions", icon: ArrowLeftRight },
-  // 損益推移: 右肩上がりの利益をイメージ
+  { name: "取引入出金管理", href: "/cashflows", icon: Banknote },
+  { name: "保有銘柄 ", href: "/holdings", icon: ArrowLeftRight },
+  { name: "取引履歴 ", href: "/trade_history", icon: History },
   { name: "損益推移", href: "/performance", icon: TrendingUp },
-  // 資産推移: 資産全体の残高・チャートをイメージ
   { name: "資産推移", href: "/assets", icon: LineChart },
-  // 監視メモ: 観察(Search)と記録をイメージ
   { name: "監視メモ", href: "/observation_logs", icon: SearchCode },
-  //http://localhost:3000/baskets
   { name: "バスケット", href: "/baskets", icon: ShoppingBasket },
   { name: "カレンダー", href: "/calendar", icon: Calendar },
   { name: "口座管理", href: "/settings/accounts", icon: Wallet },

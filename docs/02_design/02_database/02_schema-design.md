@@ -22,14 +22,15 @@
       - [stock\_basket\_items（バスケット銘柄明細）](#stock_basket_itemsバスケット銘柄明細)
     - [5.4 証券口座・手数料シミュレーション](#54-証券口座手数料シミュレーション)
       - [brokers（証券会社マスタ）](#brokers証券会社マスタ)
-      - [fee\_templates / fee\_rules](#fee_templates--fee_rules)
+      - [fee\_templates（手数料プラン定義）](#fee_templates手数料プラン定義)
+      - [fee\_rules（手数料計算ルール）](#fee_rules手数料計算ルール)
       - [broker\_accounts（ユーザーの証券口座）](#broker_accountsユーザーの証券口座)
       - [account\_fee\_rules（個別口座専用ルール）](#account_fee_rules個別口座専用ルール)
     - [5.5 ログ・通知](#55-ログ通知)
       - [spt\_stock\_view\_history（銘柄参照履歴）](#spt_stock_view_history銘柄参照履歴)
       - [spt\_notifications（通知）](#spt_notifications通知)
       - [observation\_logs（トレード観察ログ）](#observation_logsトレード観察ログ)
-    - [6 口座取引・資産管理（追加セクション）](#6-口座取引資産管理追加セクション)
+    - [6 口座取引・資産管理](#6-口座取引資産管理)
       - [6.1 account\_transactions](#61-account_transactions)
 
 
@@ -201,12 +202,35 @@ erDiagram
 | formal_name | text | 正式名称 |
 | is_active | boolean | 有効フラグ（論理削除用） |
 
-#### fee_templates / fee_rules
+#### fee_templates（手数料プラン定義）
 
-証券会社が提供する「プラン」と、その「計算ルール」を定義します。
+証券会社が提供する手数料コース（プラン）の基本情報を管理します。
 
-* **fee_templates**: 「一日定額コース」などの名称を保持。
-* **fee_rules**: 「100万までは〇％」といった具体的な数値、`threshold_amount`（閾値）、`fee_rate`（率）、`is_daily_sum`（日次合算判定か）を保持します。
+| カラム名 | 型 | NULL | 補足・役割 |
+| --- | --- | --- | --- |
+| **id** | serial | NO | PK。自動採番。 |
+| broker_id | integer | YES | FK。`brokers.id` を参照。 |
+| name | text | NO | プラン略称（例: 一日定額）。 |
+| formal_name | text | YES | 正式名称。 |
+| description | text | YES | プランの説明。 |
+| sort_order | integer | YES | 表示順（デフォルト: 0）。 |
+| created_at | timestamptz | YES | 作成日時。 |
+
+#### fee_rules（手数料計算ルール）
+
+各プランにおける具体的な手数料計算ロジック（閾値や料率）を定義します。
+
+| カラム名 | 型 | NULL | 補足・役割 |
+| --- | --- | --- | --- |
+| **id** | serial | NO | PK。自動採番。 |
+| template_id | integer | YES | FK。`fee_templates.id` を参照。 |
+| threshold_amount | numeric(15, 2) | NO | 適用開始となる金額閾値（約定代金など）。 |
+| fee_rate | numeric(10, 5) | YES | 手数料率（%ではなく小数値、例: 0.001）。 |
+| fixed_fee | numeric(15, 2) | YES | 固定手数料額（円）。 |
+| is_daily_sum | boolean | YES | 一日定額判定フラグ（TRUE: 合算額で判定）。 |
+| effective_date | date | YES | 適用開始日。 |
+| is_active | boolean | YES | 有効フラグ。 |
+| created_at | timestamptz | YES | 作成日時。 |
 
 #### broker_accounts（ユーザーの証券口座）
 
@@ -217,10 +241,14 @@ erDiagram
 | **id** | serial | 主キー |
 | user_id | uuid | ユーザーID |
 | broker_id | integer | 証券会社ID |
-| template_id | integer | ベースとなっているプランID |
 | name | text | 口座表示名（例：メイン口座） |
+| template_id | integer | ベースとなっているプランID |
 | is_nisa | boolean | NISA口座フラグ |
 | **use_custom_fee** | boolean | カスタム手数料を使用するか（TRUEの場合、下記専用ルールを参照） |
+| sort_order | integer | 表示順（ユーザー単位で利用） |
+| created_at | timestamptz | 作成日時 |
+| updated_at | timestamptz | 更新日時 |
+| category | text | カテゴリ（NULL: 未指定/通常、値あり: 特殊口座/集計対象外） |
 
 #### account_fee_rules（個別口座専用ルール）
 
@@ -265,7 +293,7 @@ erDiagram
 | tags | text[] | タグの配列 |
 
 
-### 6 口座取引・資産管理（追加セクション）
+### 6 口座取引・資産管理
 
 株式売買も入出金も「資産の変動」であるという共通点に着目し、取引区分（`transaction_type`）によって入力項目を使い分ける設計です。
 
@@ -292,8 +320,10 @@ erDiagram
 
 単一テーブルで管理するため、このカラムの値でデータの性格を決定します。
 
-* **株式関連**: `BUY`（現物買）、`SELL`（現物売）、`CREDIT_OPEN`（信用建）、`CREDIT_CLOSE`（信用埋）
-* **資金関連**: `DEPOSIT`（入金）、`WITHDRAWAL`（出金）、`DIVIDEND`（配当金・分配金）、`INTEREST`（利息）、`OTHER`（その他）
+* **株式売買 (Trading)**: `BUY`（現物買）、`SELL`（現物売）、`CREDIT_OPEN`（信用建）、`CREDIT_CLOSE`（信用埋）
+* **資金移動 (Cash)**: `DEPOSIT`（入金）、`WITHDRAWAL`（出金）
+* **インカム・税金 (Income/Tax)**: `DIVIDEND`（配当金）、`TAX`（源泉徴収・税金）、`INTEREST`（利子）
+* **株式異動 (Corporate Action)**: `STOCK_SPLIT`（株式分割）、`STOCK_MERGE`（株式併合）、`STOCK_TRANSFER_IN`（入庫・移管入）、`STOCK_TRANSFER_OUT`（出庫・移管出）
 
 
 - この設計の妥当性（メリット）
@@ -301,5 +331,3 @@ erDiagram
 1. **残高計算の容易性**: `amount` を `SUM` するだけで、その口座の現在の現金残高が算出できます。
 2. **時系列分析**: 「いつ、いくら資金が動いたか」を、売買と入出金を区別せずに一本のタイムラインで表示可能です。
 3. **拡張性**: 将来的に「投資信託」や「貸株金」などの新しい取引種別が増えても、`transaction_type` を増やすだけで対応できます。
-
-

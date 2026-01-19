@@ -1,9 +1,7 @@
+import TradeHistoryClient from "@/components/pages/user/tradeHistory/TradeHistoryClient";
 import { createKabuTrailServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
-// import { getAccountListDisplayData } from "@/services/account-server";
-import PositionsClient from "@/components/pages/user/positions/PositionsClient";
-
-export default async function AccountPage() {
+export default async function page() {
   const supabaseServer = await createKabuTrailServerClient();
   const {
     data: { user },
@@ -14,14 +12,9 @@ export default async function AccountPage() {
     redirect("/login");
   }
 
-  // const { brokers, accounts } = await getAccountListDisplayData(
-  //   supabaseServer,
-  //   user.id
-  // );
-
   return (
     <div className="p-4 w-full">
-      <PositionsClient user={user}></PositionsClient>
+      <TradeHistoryClient user={user}></TradeHistoryClient>
     </div>
   );
 }
