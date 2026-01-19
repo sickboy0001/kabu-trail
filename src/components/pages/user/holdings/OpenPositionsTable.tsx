@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import Link from "next/link";
-import type { Position } from "./PositionsClient";
+import type { Position } from "./HoldingsClient";
 import {
   Table,
   TableBody,
