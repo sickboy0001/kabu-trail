@@ -266,7 +266,6 @@ export default function TradeHistoryClient({ user, onToggleSidebar }: Props) {
   const [filterText, setFilterText] = useState("");
   const [startDate, setStartDate] = useState(formatDate(oneYearAgo));
   const [endDate, setEndDate] = useState(formatDate(today));
-  const [activeTab, setActiveTab] = useState<"open" | "closed">("open");
 
   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newStartDate = e.target.value;
@@ -321,64 +320,7 @@ export default function TradeHistoryClient({ user, onToggleSidebar }: Props) {
           </div>
         </div>
       </div>
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <p className="text-sm text-slate-500 font-medium mb-1">
-            資産評価額合計
-          </p>
-          <p className="text-2xl font-bold text-slate-800">
-            ¥{currentMarketValue.toLocaleString()}
-          </p>
-          <div className="flex items-center gap-2 mt-2 text-sm">
-            <span className="text-slate-500">
-              取得額: ¥{totalInvestment.toLocaleString()}
-            </span>
-          </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <p className="text-sm text-slate-500 font-medium mb-1">
-            含み損益 (評価損益)
-          </p>
-          <div className="flex items-baseline gap-2">
-            <p
-              className={`text-2xl font-bold ${
-                totalUnrealizedPL >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {totalUnrealizedPL >= 0 ? "+" : ""}
-              {totalUnrealizedPL.toLocaleString()}
-            </p>
-            <span
-              className={`text-sm font-medium ${
-                totalUnrealizedPL >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              ({totalUnrealizedPLPercent >= 0 ? "+" : ""}
-              {totalUnrealizedPLPercent.toFixed(2)}%)
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-2">
-            ※現在の市場価格に基づく試算
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <p className="text-sm text-slate-500 font-medium mb-1">
-            確定損益 (実現損益)
-          </p>
-          <p
-            className={`text-2xl font-bold ${
-              totalRealizedPL >= 0 ? "text-blue-600" : "text-red-600"
-            }`}
-          >
-            {totalRealizedPL >= 0 ? "+" : ""}
-            {totalRealizedPL.toLocaleString()}
-          </p>
-          <p className="text-xs text-slate-400 mt-2">※決済済み取引の累計</p>
-        </div>
-      </div>
       {/* Filter */}
       <div className="flex flex-col lg:flex-row justify-between items-end gap-4 border-b border-slate-200 pb-4">
         <div className="flex flex-wrap items-end gap-6 w-full lg:w-auto">

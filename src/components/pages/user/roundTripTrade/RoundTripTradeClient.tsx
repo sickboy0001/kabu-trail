@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
-import { Search, PanelLeft } from "lucide-react";
-import OpenPositionsTable from "./OpenPositionsTable";
+import { Search, PanelLeft, List, Table as TableIcon } from "lucide-react";
+import RoundTripTradeTable from "./RoundTripTradeTable";
 import {
   fetchTransactions,
   type TransactionWithDetails,
@@ -44,7 +44,7 @@ export type ClosedTrade = {
   entryType?: string;
 };
 
-export default function HoldingsClient({ user, onToggleSidebar }: Props) {
+export default function RoundTripTradeClient({ user, onToggleSidebar }: Props) {
   const [transactions, setTransactions] = useState<TransactionWithDetails[]>(
     [],
   );
@@ -214,6 +214,58 @@ export default function HoldingsClient({ user, onToggleSidebar }: Props) {
     return { positions: current, closedTrades: closed };
   }, [transactions]);
 
+  // Group closedTrades into Cycles (Entry to Exit = 0)
+  const tradeCycles = useMemo(() => {
+    if (closedTrades.length === 0) return [];
+
+    const groups: Record<string, ClosedTrade[]> = {};
+    closedTrades.forEach((t) => {
+      const key = `${t.accountName}-${t.code}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(t);
+    });
+
+    const cycles: ClosedTrade[] = [];
+
+    Object.values(groups).forEach((groupTrades) => {
+      // Sort by Entry Date
+      groupTrades.sort((a, b) => {
+        const dateDiff =
+          new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return a.id.localeCompare(b.id);
+      });
+
+      if (groupTrades.length === 0) return;
+
+      let currentCycle: ClosedTrade[] = [groupTrades[0]];
+      let cycleEndTime = new Date(groupTrades[0].exitDate).getTime();
+
+      for (let i = 1; i < groupTrades.length; i++) {
+        const t = groupTrades[i];
+        const tEntryTime = new Date(t.entryDate).getTime();
+        const tExitTime = new Date(t.exitDate).getTime();
+
+        // If entry is before or on the same day as previous exit, consider it part of the same cycle
+        if (tEntryTime <= cycleEndTime) {
+          currentCycle.push(t);
+          if (tExitTime > cycleEndTime) {
+            cycleEndTime = tExitTime;
+          }
+        } else {
+          cycles.push(aggregateCycle(currentCycle));
+          currentCycle = [t];
+          cycleEndTime = tExitTime;
+        }
+      }
+      if (currentCycle.length > 0) {
+        cycles.push(aggregateCycle(currentCycle));
+      }
+    });
+
+    return cycles;
+  }, [closedTrades]);
+
   // Fetch current prices for open positions
   useEffect(() => {
     if (basePositions.length === 0) return;
@@ -266,7 +318,7 @@ export default function HoldingsClient({ user, onToggleSidebar }: Props) {
   const [filterText, setFilterText] = useState("");
   const [startDate, setStartDate] = useState(formatDate(oneYearAgo));
   const [endDate, setEndDate] = useState(formatDate(today));
-  const [activeTab, setActiveTab] = useState<"open" | "closed">("open");
+  const [viewMode, setViewMode] = useState<"grouped" | "flat">("flat");
 
   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newStartDate = e.target.value;
@@ -313,10 +365,10 @@ export default function HoldingsClient({ user, onToggleSidebar }: Props) {
           )}
           <div>
             <h1 className="text-2xl font-bold text-slate-800">
-              保有銘柄 (Open Positions)
+              売却済み・過去の取引 (Closed Trades)
             </h1>
             <p className="text-slate-500 text-sm mt-1">
-              現在の保有資産の評価額を確認できます。
+              過去の取引による確定損益を確認できます。
             </p>
           </div>
         </div>
@@ -352,29 +404,90 @@ export default function HoldingsClient({ user, onToggleSidebar }: Props) {
           </div>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="銘柄名・コードで検索..."
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <div className="flex items-center gap-3 w-full lg:w-auto">
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <button
+              onClick={() => setViewMode("flat")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                viewMode === "flat"
+                  ? "bg-white shadow text-blue-600"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <List size={16} />
+              <span>明細一覧</span>
+            </button>
+            <button
+              onClick={() => setViewMode("grouped")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                viewMode === "grouped"
+                  ? "bg-white shadow text-blue-600"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <TableIcon size={16} />
+              <span>集計一覧</span>
+            </button>
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+              size={18}
+            />
+            <input
+              type="text"
+              placeholder="銘柄名・コードで検索..."
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
       </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-        <OpenPositionsTable
-          filterText={filterText}
-          positions={positions}
-          startDate={startDate}
-          endDate={endDate}
-        />
-      </div>
+      <RoundTripTradeTable
+        filterText={filterText}
+        trades={tradeCycles}
+        startDate={startDate}
+        endDate={endDate}
+        transactions={transactions}
+      />
     </div>
   );
+}
+
+function aggregateCycle(trades: ClosedTrade[]): ClosedTrade {
+  const first = trades[0];
+  let lastTrade = trades[0];
+  trades.forEach((t) => {
+    if (t.exitDate >= lastTrade.exitDate) {
+      lastTrade = t;
+    }
+  });
+
+  const totalQty = trades.reduce((sum, t) => sum + t.quantity, 0);
+  const totalEntryVal = trades.reduce(
+    (sum, t) => sum + t.entryPrice * t.quantity,
+    0,
+  );
+  const totalExitVal = trades.reduce(
+    (sum, t) => sum + t.exitPrice * t.quantity,
+    0,
+  );
+  const totalPL = trades.reduce((sum, t) => sum + (t.realizedPL ?? 0), 0);
+
+  return {
+    id: `cycle-${first.id}-${trades.length}`,
+    code: first.code,
+    name: first.name,
+    accountName: first.accountName,
+    quantity: totalQty,
+    entryDate: first.entryDate,
+    entryPrice: totalQty ? Math.round(totalEntryVal / totalQty) : 0,
+    exitDate: lastTrade.exitDate,
+    exitPrice: totalQty ? Math.round(totalExitVal / totalQty) : 0,
+    realizedPL: totalPL,
+    entryType: first.entryType,
+    exitType: lastTrade.exitType,
+  };
 }
