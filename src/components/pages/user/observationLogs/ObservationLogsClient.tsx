@@ -125,9 +125,15 @@ export default function ObservationLogsClient({ user }: Props) {
   };
 
   // 銘柄指定で新規作成
-  const handleAddNote = (e: React.MouseEvent, stock: StockInfo) => {
+  const handleAddNote = (
+    e: React.MouseEvent,
+    stockOrStocks: StockInfo | StockInfo[],
+  ) => {
     e.stopPropagation();
-    setPresetStocks([stock]);
+    const stocks = Array.isArray(stockOrStocks)
+      ? stockOrStocks
+      : [stockOrStocks];
+    setPresetStocks(stocks);
     setEditingLogId(null);
     setIsModalOpen(true);
   };

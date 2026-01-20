@@ -8,7 +8,7 @@ const getTodayString = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
     2,
-    "0"
+    "0",
   )}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
@@ -110,7 +110,7 @@ export function ObservationLogModal({
   // サジェストリスト項目でのキー操作
   const handleSuggestionKeyDown = (
     e: React.KeyboardEvent<HTMLLIElement>,
-    stock: StockInfo
+    stock: StockInfo,
   ) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -172,75 +172,79 @@ export function ObservationLogModal({
         </div>
 
         <div className="p-6 space-y-4 overflow-y-auto">
-          {/* 日付入力 */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">日付</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* 銘柄入力エリア */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">
-              関連銘柄
-            </label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="銘柄名またはコード (例: トヨタ, 7203)"
-                  value={stockInput.name}
-                  onChange={handleNameChange}
-                  onKeyDown={handleInputKeyDown}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {/* サジェストリスト */}
-                {suggestions.length > 0 && (
-                  <ul
-                    ref={suggestionsRef}
-                    className="absolute z-10 w-full bg-white border border-slate-200 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto"
-                  >
-                    {suggestions.map((s) => (
-                      <li
-                        key={s.code}
-                        tabIndex={0}
-                        onClick={() => handleSelectStock(s)}
-                        onKeyDown={(e) => handleSuggestionKeyDown(e, s)}
-                        className="px-3 py-2 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none cursor-pointer text-sm flex justify-between items-center"
-                      >
-                        <span className="font-medium text-slate-700">
-                          {s.name}
-                        </span>
-                        <span className="text-slate-400 text-xs">{s.code}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+          <div className="flex gap-4 items-start">
+            {/* 日付入力 */}
+            <div className="space-y-2 w-40 shrink-0">
+              <label className="text-sm font-medium text-slate-700">日付</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-            {/* 追加された銘柄リスト */}
-            <div className="flex flex-wrap gap-2 mt-2">
-              {stocks.map((stock, index) => (
-                <Badge
-                  key={index}
-                  variant="secondary"
-                  className="bg-blue-50 text-blue-700 border-blue-100 pl-2 pr-1 py-1 flex items-center gap-1"
-                >
-                  [{stock.code}] {stock.name}
-                  <button
-                    onClick={() => handleRemoveStock(index)}
-                    className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
-                    aria-label={`[${stock.code}] ${stock.name}を削除`}
+
+            {/* 銘柄入力エリア */}
+            <div className="space-y-2 flex-1 min-w-0">
+              <label className="text-sm font-medium text-slate-700">
+                関連銘柄
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="銘柄名またはコード (例: トヨタ, 7203)"
+                    value={stockInput.name}
+                    onChange={handleNameChange}
+                    onKeyDown={handleInputKeyDown}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {/* サジェストリスト */}
+                  {suggestions.length > 0 && (
+                    <ul
+                      ref={suggestionsRef}
+                      className="absolute z-10 w-full bg-white border border-slate-200 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto"
+                    >
+                      {suggestions.map((s) => (
+                        <li
+                          key={s.code}
+                          tabIndex={0}
+                          onClick={() => handleSelectStock(s)}
+                          onKeyDown={(e) => handleSuggestionKeyDown(e, s)}
+                          className="px-3 py-2 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none cursor-pointer text-sm flex justify-between items-center"
+                        >
+                          <span className="font-medium text-slate-700">
+                            {s.name}
+                          </span>
+                          <span className="text-slate-400 text-xs">
+                            {s.code}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              {/* 追加された銘柄リスト */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {stocks.map((stock, index) => (
+                  <Badge
+                    key={index}
+                    variant="secondary"
+                    className="bg-blue-50 text-blue-700 border-blue-100 pl-2 pr-1 py-1 flex items-center gap-1"
                   >
-                    <X size={12} />
-                  </button>
-                </Badge>
-              ))}
+                    [{stock.code}] {stock.name}
+                    <button
+                      onClick={() => handleRemoveStock(index)}
+                      className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                      aria-label={`[${stock.code}] ${stock.name}を削除`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -254,7 +258,7 @@ export function ObservationLogModal({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="気になったニュースや考察を入力..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[150px] resize-none"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-30 resize-none"
             />
           </div>
 

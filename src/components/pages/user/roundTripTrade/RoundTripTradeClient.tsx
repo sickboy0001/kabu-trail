@@ -365,7 +365,7 @@ export default function RoundTripTradeClient({ user, onToggleSidebar }: Props) {
           )}
           <div>
             <h1 className="text-2xl font-bold text-slate-800">
-              売却済み・過去の取引 (Closed Trades)
+              売却済み・過去の取引(Closed Trades)
             </h1>
             <p className="text-slate-500 text-sm mt-1">
               過去の取引による確定損益を確認できます。
@@ -405,31 +405,6 @@ export default function RoundTripTradeClient({ user, onToggleSidebar }: Props) {
         </div>
 
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-            <button
-              onClick={() => setViewMode("flat")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                viewMode === "flat"
-                  ? "bg-white shadow text-blue-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <List size={16} />
-              <span>明細一覧</span>
-            </button>
-            <button
-              onClick={() => setViewMode("grouped")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                viewMode === "grouped"
-                  ? "bg-white shadow text-blue-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <TableIcon size={16} />
-              <span>集計一覧</span>
-            </button>
-          </div>
-
           <div className="relative w-full sm:w-64">
             <Search
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"

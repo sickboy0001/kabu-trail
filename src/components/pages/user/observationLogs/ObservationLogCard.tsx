@@ -29,7 +29,7 @@ type Props = {
   onDelete: (e: MouseEvent, id: number) => void;
   onReactivate: (e: MouseEvent, id: number) => void;
   onStockClick?: (name: string) => void;
-  onAddNote?: (e: MouseEvent, stock: StockInfo) => void;
+  onAddNote?: (e: MouseEvent, stock: StockInfo | StockInfo[]) => void;
 };
 
 export function ObservationLogCard({
@@ -78,8 +78,12 @@ export function ObservationLogCard({
       )}
 
       <CardHeader className="p-3 pb-1">
-        <div className="flex justify-between items-start gap-2">
-          <div className="flex flex-wrap gap-1 max-w-[75%]">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0">
+            <CalendarIcon className="mr-1 h-3 w-3" />
+            {log.date}
+          </div>
+          <div className="flex flex-wrap gap-1">
             {log.stocks.map((stock) => (
               <Badge
                 key={stock.code}
@@ -113,10 +117,6 @@ export function ObservationLogCard({
                 Note
               </span>
             )}
-          </div>
-          <div className="flex items-center text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
-            <CalendarIcon className="mr-1 h-3 w-3" />
-            {log.date}
           </div>
         </div>
       </CardHeader>
