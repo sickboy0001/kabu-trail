@@ -26,7 +26,7 @@ const menuItems = [
   { name: "ダッシュボード", href: "/dashboard", icon: LayoutDashboard },
   { name: "取引入出金管理", href: "/cashflows", icon: Banknote },
   { name: "保有銘柄 ", href: "/holdings", icon: ArrowLeftRight },
-  { name: "取引履歴 ", href: "/trade_history", icon: History },
+  // { name: "取引履歴 ", href: "/trade_history", icon: History },
   { name: "銘柄別損益", href: "/round_trip_trade", icon: Repeat },
   { name: "損益推移", href: "/performance", icon: TrendingUp },
   { name: "資産推移", href: "/assets", icon: LineChart },

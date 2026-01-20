@@ -1,10 +1,16 @@
 "use client";
 
 import { User } from "@supabase/supabase-js";
-import AssetSummaryCards from "./AssetSummaryCards";
+import { useState } from "react";
+import { Settings } from "lucide-react";
+import AssetSummaryCards, {
+  SUMMARY_ITEMS_DEF,
+  AssetSummaryVisibility,
+} from "./AssetSummaryCards";
 import AssetHistoryChart from "./AssetHistoryChart";
 import PortfolioPieChart from "./PortfolioPieChart";
 import HoldingsTable from "./HoldingsTable";
+import DashboardSettings, { DashboardItem } from "./setting/DashboardSettings";
 
 type Props = {
   user: User;
@@ -91,11 +97,11 @@ export default function DashboardClient({ user }: Props) {
   // 集計計算
   const stockValue = holdings.reduce(
     (sum, h) => sum + h.currentPrice * h.quantity,
-    0
+    0,
   );
   const acquisitionCost = holdings.reduce(
     (sum, h) => sum + h.averagePrice * h.quantity,
-    0
+    0,
   );
   const cashBalance = 1500000; // 現金残高（ダミー）
   const totalAssets = stockValue + cashBalance;
@@ -118,7 +124,7 @@ export default function DashboardClient({ user }: Props) {
     date.setMonth(date.getMonth() - (11 - i));
     const month = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(
       2,
-      "0"
+      "0",
     )}`;
     // ダミーの資産額を生成（少しずつ増えていく感じ）
     const asset =
@@ -126,24 +132,127 @@ export default function DashboardClient({ user }: Props) {
     return { month, 資産額: Math.round(asset) };
   });
 
+  // ダッシュボード設定・レイアウト状態
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [layoutItems, setLayoutItems] = useState<DashboardItem[]>([
+    { id: "summary", label: "資産サマリー", visible: true, colSpan: 4 },
+    { id: "history", label: "資産推移チャート", visible: true, colSpan: 3 },
+    { id: "pie", label: "ポートフォリオ", visible: true, colSpan: 1 },
+    { id: "holdings", label: "保有銘柄一覧", visible: true, colSpan: 4 },
+  ]);
+  const [columnCount, setColumnCount] = useState(3);
+  const [summaryVisibility, setSummaryVisibility] = useState<AssetSummaryVisibility>(
+    {
+      totalAssets: true,
+      totalGainLoss: true,
+      dayChange: true,
+    },
+  );
+
+  const handleSaveSettings = (
+    newItems: DashboardItem[],
+    newColumnCount: number,
+    newSummaryVisibility: Record<string, boolean>,
+  ) => {
+    setLayoutItems(newItems);
+    setColumnCount(newColumnCount);
+    setSummaryVisibility(newSummaryVisibility as AssetSummaryVisibility);
+    setIsSettingsOpen(false);
+  };
+
+  const renderWidget = (id: string, className = "") => {
+    switch (id) {
+      case "summary":
+        return (
+          <AssetSummaryCards
+            key="summary"
+            summary={summary}
+            columnCount={columnCount}
+            visibility={summaryVisibility}
+          />
+        );
+      case "history":
+        return (
+          <AssetHistoryChart
+            key="history"
+            data={assetHistory}
+            className={className}
+          />
+        );
+      case "pie":
+        return (
+          <PortfolioPieChart
+            key="pie"
+            holdings={holdings}
+            className={className}
+          />
+        );
+      case "holdings":
+        return <HoldingsTable key="holdings" holdings={holdings} />;
+      default:
+        return null;
+    }
+  };
+
+  const renderDashboardContent = () => {
+    const visibleItems = layoutItems.filter((i) => i.visible);
+
+    // Tailwindのクラス名を動的に生成せず、完全な文字列として定義することで
+    // ビルド時に正しく検出されるようにします
+    const getColSpanClass = (span?: number) => {
+      switch (span) {
+        case 1:
+          return "md:col-span-1";
+        case 2:
+          return "md:col-span-2";
+        case 3:
+          return "md:col-span-3";
+        default:
+          return "md:col-span-4";
+      }
+    };
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {visibleItems.map((item) => (
+          <div
+            key={item.id}
+            // className={`col-span-1 md:col-span-${item.colSpan || 4}`}
+            className={`col-span-1 ${getColSpanClass(item.colSpan)}`}
+          >
+            {renderWidget(item.id, "h-full")}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 md:space-y-8">
       {/* ヘッダー */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-slate-800">ダッシュボード</h1>
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+          title="ダッシュボード設定"
+        >
+          <Settings size={20} />
+        </button>
       </div>
 
-      {/* 資産サマリーカード */}
-      <AssetSummaryCards summary={summary} />
-
-      {/* グラフエリア */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <AssetHistoryChart data={assetHistory} className="md:col-span-2" />
-        <PortfolioPieChart holdings={holdings} />
-      </div>
-
-      {/* 保有銘柄一覧 */}
-      <HoldingsTable holdings={holdings} />
+      {isSettingsOpen ? (
+        <DashboardSettings
+          initialItems={layoutItems}
+          initialColumnCount={columnCount}
+          initialSummaryVisibility={summaryVisibility}
+          summaryItemDefs={SUMMARY_ITEMS_DEF}
+          onSave={handleSaveSettings}
+          onCancel={() => setIsSettingsOpen(false)}
+        />
+      ) : (
+        renderDashboardContent()
+      )}
     </div>
   );
 }

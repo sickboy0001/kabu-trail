@@ -6,12 +6,12 @@ import {
   ColorType,
   CandlestickSeries,
   HistogramSeries,
+  LineSeries,
   UTCTimestamp,
   ISeriesApi,
   IChartApi,
 } from "lightweight-charts";
 import { FetchStockData } from "@/lib/stockApi";
-import { useMovingAverage } from "./hooks/useMovingAverage";
 import { useMACD } from "./hooks/useMACD";
 
 type Props = {
@@ -27,6 +27,19 @@ type ChartData = {
   volume: number;
 };
 
+const calculateSMA = (data: ChartData[], period: number) => {
+  const smaData = [];
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) continue;
+    let sum = 0;
+    for (let j = 0; j < period; j++) {
+      sum += data[i - j].close;
+    }
+    smaData.push({ time: data[i].time, value: sum / period });
+  }
+  return smaData;
+};
+
 export default function StockChart({ code }: Props) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [interval, setInterval] = useState<"1d" | "1wk" | "1mo">("1d");
@@ -37,17 +50,15 @@ export default function StockChart({ code }: Props) {
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const maShortSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const maMediumSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const maLongSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 
   // ツールチップやuseEffect内で最新の状態を参照するためのRef
   const showMARef = useRef(showMA);
   const showMACDRef = useRef(showMACD);
 
   // カスタムフックの使用
-  const { ma5SeriesRef, ma25SeriesRef, ma75SeriesRef } = useMovingAverage(
-    chartRef.current,
-    chartData,
-    showMA,
-  );
   const { macdSeriesRef, signalSeriesRef, macdHistSeriesRef } = useMACD(
     chartRef.current,
     volumeSeriesRef.current,
@@ -58,10 +69,34 @@ export default function StockChart({ code }: Props) {
   useEffect(() => {
     showMARef.current = showMA;
     showMACDRef.current = showMACD;
+    if (maShortSeriesRef.current)
+      maShortSeriesRef.current.applyOptions({ visible: showMA });
+    if (maMediumSeriesRef.current)
+      maMediumSeriesRef.current.applyOptions({ visible: showMA });
+    if (maLongSeriesRef.current)
+      maLongSeriesRef.current.applyOptions({ visible: showMA });
   }, [showMA, showMACD]);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
+
+    // 将来の期間を示すための右側のオフセット（バーの数）を計算
+    // 将来の予測やメモ書きのための余白を確保する
+    let rightOffset = 22; // 日足: 約1ヶ月の営業日数
+    let shortP = 5,
+      mediumP = 25,
+      longP = 75;
+    if (interval === "1wk") {
+      rightOffset = 12; // 週足: 約3ヶ月分
+      shortP = 13;
+      mediumP = 26;
+      longP = 52;
+    } else if (interval === "1mo") {
+      rightOffset = 6; // 月足: 約6ヶ月分
+      shortP = 12;
+      mediumP = 24;
+      longP = 60;
+    }
 
     // 1. チャートの初期化
     const chart = createChart(chartContainerRef.current, {
@@ -74,6 +109,9 @@ export default function StockChart({ code }: Props) {
       grid: {
         vertLines: { color: "#e2e8f0" }, // slate-200
         horzLines: { color: "#e2e8f0" },
+      },
+      timeScale: {
+        rightOffset,
       },
     });
     chartRef.current = chart;
@@ -97,6 +135,26 @@ export default function StockChart({ code }: Props) {
       priceScaleId: "", // オーバーレイとして設定
     });
     volumeSeriesRef.current = volumeSeries;
+
+    // 移動平均線
+    const maShortSeries = chart.addSeries(LineSeries, {
+      color: "#9C27B0",
+      lineWidth: 1,
+      visible: showMA,
+    });
+    const maMediumSeries = chart.addSeries(LineSeries, {
+      color: "#2962FF",
+      lineWidth: 1,
+      visible: showMA,
+    });
+    const maLongSeries = chart.addSeries(LineSeries, {
+      color: "#FF6D00",
+      lineWidth: 1,
+      visible: showMA,
+    });
+    maShortSeriesRef.current = maShortSeries;
+    maMediumSeriesRef.current = maMediumSeries;
+    maLongSeriesRef.current = maLongSeries;
 
     // ツールチップの作成
     const toolTip = document.createElement("div");
@@ -144,16 +202,16 @@ export default function StockChart({ code }: Props) {
         const volumeData = param.seriesData.get(volumeSeries) as
           | { value: number }
           | undefined;
-        const ma5Data = (ma5SeriesRef.current &&
-          param.seriesData.get(ma5SeriesRef.current)) as
+        const maShortData = (maShortSeriesRef.current &&
+          param.seriesData.get(maShortSeriesRef.current)) as
           | { value: number }
           | undefined;
-        const ma25Data = (ma25SeriesRef.current &&
-          param.seriesData.get(ma25SeriesRef.current)) as
+        const maMediumData = (maMediumSeriesRef.current &&
+          param.seriesData.get(maMediumSeriesRef.current)) as
           | { value: number }
           | undefined;
-        const ma75Data = (ma75SeriesRef.current &&
-          param.seriesData.get(ma75SeriesRef.current)) as
+        const maLongData = (maLongSeriesRef.current &&
+          param.seriesData.get(maLongSeriesRef.current)) as
           | { value: number }
           | undefined;
         const macdData = (macdSeriesRef.current &&
@@ -173,17 +231,17 @@ export default function StockChart({ code }: Props) {
           const high = candleData.high.toFixed(1);
           const low = candleData.low.toFixed(1);
           const volume = volumeData ? volumeData.value.toLocaleString() : "N/A";
-          const ma5 = ma5Data ? ma5Data.value.toFixed(1) : "-";
-          const ma25 = ma25Data ? ma25Data.value.toFixed(1) : "-";
-          const ma75 = ma75Data ? ma75Data.value.toFixed(1) : "-";
+          const maShort = maShortData ? maShortData.value.toFixed(1) : "-";
+          const maMedium = maMediumData ? maMediumData.value.toFixed(1) : "-";
+          const maLong = maLongData ? maLongData.value.toFixed(1) : "-";
           const macdVal = macdData ? macdData.value.toFixed(2) : "-";
           const signalVal = signalData ? signalData.value.toFixed(2) : "-";
           const histVal = histData ? histData.value.toFixed(2) : "-";
 
           const maHtml = showMARef.current
-            ? `<div style="color: #9C27B0">MA5: ${ma5}</div>
-               <div style="color: #2962FF">MA25: ${ma25}</div>
-               <div style="color: #FF6D00">MA75: ${ma75}</div>`
+            ? `<div style="color: #9C27B0">MA${shortP}: ${maShort}</div>
+               <div style="color: #2962FF">MA${mediumP}: ${maMedium}</div>
+               <div style="color: #FF6D00">MA${longP}: ${maLong}</div>`
             : "";
 
           const macdHtml = showMACDRef.current
@@ -232,9 +290,9 @@ export default function StockChart({ code }: Props) {
         const startDate = new Date();
 
         if (interval === "1mo") {
-          startDate.setFullYear(endDate.getFullYear() - 5);
+          startDate.setFullYear(endDate.getFullYear() - 16);
         } else if (interval === "1wk") {
-          startDate.setFullYear(endDate.getFullYear() - 2);
+          startDate.setFullYear(endDate.getFullYear() - 4);
         } else {
           startDate.setFullYear(endDate.getFullYear() - 1);
         }
@@ -313,6 +371,10 @@ export default function StockChart({ code }: Props) {
             })),
           );
         }
+
+        maShortSeries.setData(calculateSMA(validData, shortP));
+        maMediumSeries.setData(calculateSMA(validData, mediumP));
+        maLongSeries.setData(calculateSMA(validData, longP));
       } catch (error) {
         console.error("Chart data loading error:", error);
       }

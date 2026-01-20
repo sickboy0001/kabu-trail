@@ -1,4 +1,4 @@
-import TradeHistoryClient from "@/components/pages/user/tradeHistory/TradeHistoryClient";
+import TradeHistoryClient from "@/components/pages/user/_tradeHistory/TradeHistoryClient";
 import { createKabuTrailServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 export default async function page() {

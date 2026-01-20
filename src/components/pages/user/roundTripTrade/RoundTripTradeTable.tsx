@@ -122,199 +122,228 @@ export default function RoundTripTradeTable({
 
   return (
     <div className="flex flex-col">
-      <div className="overflow-x-auto">
-        <Table className="min-w-max">
-          <TableHeader className="bg-slate-50">
-            <TableRow>
-              <TableHead className="w-10 p-2"></TableHead>
-              <TableHead className="p-2 font-medium text-slate-600 w-25 md:w-auto">
-                銘柄
-              </TableHead>
-              <TableHead className="p-2 font-medium text-slate-600 hidden md:table-cell">
-                口座
-              </TableHead>
-              <TableHead className="p-2 font-medium text-slate-600 text-right">
-                株数
-              </TableHead>
-              <TableHead className="p-2 font-medium text-slate-600 hidden md:table-cell">
-                取得日
-              </TableHead>
-              <TableHead className="p-2 font-medium text-slate-600 text-right hidden md:table-cell">
-                取得単価
-              </TableHead>
-              <TableHead className="p-2 font-medium text-slate-600">
-                売却日
-              </TableHead>
-              <TableHead className="p-2 font-medium text-slate-600 text-right hidden md:table-cell">
-                売却単価
-              </TableHead>
-              <TableHead className="p-2 font-medium text-slate-600 text-right hidden md:table-cell">
-                保有期間
-              </TableHead>
-              <TableHead className="p-2 font-medium text-slate-600 text-right">
-                確定損益
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((item) => {
-              const isPositive = (item.realizedPL ?? 0) >= 0;
-              const isNonTradeExit =
-                item.exitType === "STOCK_MERGE" ||
-                item.exitType === "STOCK_TRANSFER_OUT";
-              const isExpanded = expandedIds.has(item.id);
+      <div className="rounded-md border overflow-hidden">
+        {/* 枠線用 */}
+        <div className="overflow-x-auto w-full">
+          <Table className="min-w-max">
+            <TableHeader className="bg-slate-50">
+              <TableRow>
+                <TableHead className="w-10 p-2"></TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 whitespace-nowrap">
+                  銘柄
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 whitespace-nowrap">
+                  口座
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
+                  株数
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 whitespace-nowrap">
+                  取得日
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
+                  取得単価
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
+                  取得金額
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 whitespace-nowrap">
+                  売却日
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
+                  売却単価
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
+                  売却金額
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
+                  保有期間
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
+                  確定損益
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((item) => {
+                const isPositive = (item.realizedPL ?? 0) >= 0;
+                const isNonTradeExit =
+                  item.exitType === "STOCK_MERGE" ||
+                  item.exitType === "STOCK_TRANSFER_OUT";
+                const isExpanded = expandedIds.has(item.id);
 
-              return (
-                <Fragment key={item.id}>
-                  <TableRow className="hover:bg-slate-50 transition-colors">
-                    <TableCell className="p-2">
-                      <button
-                        onClick={() => toggleRow(item.id)}
-                        className="p-1 hover:bg-slate-200 rounded text-slate-500"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown size={16} />
-                        ) : (
-                          <ChevronRight size={16} />
-                        )}
-                      </button>
-                    </TableCell>
-                    <TableCell className="p-2">
-                      <Link
-                        href={`/stock?code=${item.code}`}
-                        className="block group"
-                      >
-                        <div className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate max-w-[110px] md:max-w-none">
-                          {item.name}
-                        </div>
-                        <div className="text-xs text-slate-500 group-hover:text-blue-500 transition-colors">
-                          {item.code}
-                        </div>
-                        <div className="md:hidden text-xs text-slate-400 mt-0.5">
-                          {item.accountName}
-                        </div>
-                      </Link>
-                    </TableCell>
-                    <TableCell className="p-2 hidden md:table-cell">
-                      <span className="rounded text-xs font-medium bg-slate-100 text-slate-600 px-1.5 py-0.5">
-                        {item.accountName}
-                      </span>
-                    </TableCell>
-                    <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                      {item.quantity.toLocaleString()}
-                      {item.entryType === "STOCK_SPLIT" && (
-                        <span className="text-xs text-teal-600 ml-1">
-                          (分割)
-                        </span>
-                      )}
-                      {item.entryType === "STOCK_TRANSFER_IN" && (
-                        <span className="text-xs text-teal-600 ml-1">
-                          (入庫)
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="p-2 text-slate-600 whitespace-nowrap hidden md:table-cell">
-                      {item.entryDate}
-                    </TableCell>
-                    <TableCell className="p-2 text-right whitespace-nowrap font-mono hidden md:table-cell">
-                      ¥{item.entryPrice.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="p-2 text-slate-600 whitespace-nowrap">
-                      {item.exitDate}
-                    </TableCell>
-                    <TableCell className="p-2 text-right whitespace-nowrap font-mono hidden md:table-cell">
-                      {isNonTradeExit
-                        ? item.exitType === "STOCK_MERGE"
-                          ? "併合"
-                          : "出庫"
-                        : `¥${item.exitPrice.toLocaleString()}`}
-                    </TableCell>
-                    <TableCell className="p-2 text-right whitespace-nowrap font-mono hidden md:table-cell">
-                      {item.holdingPeriod}日
-                    </TableCell>
-                    <TableCell className="p-2 text-right whitespace-nowrap">
-                      {!isNonTradeExit ? (
-                        <span
-                          className={`font-bold ${
-                            isPositive ? "text-blue-600" : "text-red-600"
-                          }`}
+                const totalEntryAmount = item.entryPrice * item.quantity;
+                const plPercent =
+                  totalEntryAmount !== 0 && item.realizedPL !== undefined
+                    ? (item.realizedPL / totalEntryAmount) * 100
+                    : 0;
+
+                return (
+                  <Fragment key={item.id}>
+                    <TableRow className="hover:bg-slate-50 transition-colors">
+                      <TableCell className="p-2">
+                        <button
+                          onClick={() => toggleRow(item.id)}
+                          className="p-1 hover:bg-slate-200 rounded text-slate-500"
                         >
-                          {isPositive ? "+" : ""}
-                          {item.realizedPL?.toLocaleString()}
+                          {isExpanded ? (
+                            <ChevronDown size={16} />
+                          ) : (
+                            <ChevronRight size={16} />
+                          )}
+                        </button>
+                      </TableCell>
+                      <TableCell className="p-2 whitespace-nowrap">
+                        <Link
+                          href={`/stock?code=${item.code}`}
+                          className="block group"
+                        >
+                          <div className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                            {item.name}
+                          </div>
+                          <div className="text-xs text-slate-500 group-hover:text-blue-500 transition-colors">
+                            {item.code}
+                          </div>
+                        </Link>
+                      </TableCell>
+                      <TableCell className="p-2 whitespace-nowrap">
+                        <span className="rounded text-xs font-medium bg-slate-100 text-slate-600 px-1.5 py-0.5">
+                          {item.accountName}
                         </span>
-                      ) : (
-                        "-"
-                      )}
-                    </TableCell>
-                  </TableRow>
-                  {isExpanded && (
-                    <TableRow className="bg-slate-50/50">
-                      <TableCell colSpan={10} className="p-4">
-                        <div className="bg-white rounded border border-slate-200 p-3">
-                          <h4 className="text-xs font-bold text-slate-500 mb-2">
-                            取引履歴詳細 ({item.entryDate} 〜 {item.exitDate})
-                          </h4>
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="border-b border-slate-100">
-                                <TableHead className="h-8 text-xs">
-                                  日付
-                                </TableHead>
-                                <TableHead className="h-8 text-xs">
-                                  取引
-                                </TableHead>
-                                <TableHead className="h-8 text-xs text-right">
-                                  数量
-                                </TableHead>
-                                <TableHead className="h-8 text-xs text-right">
-                                  単価
-                                </TableHead>
-                                <TableHead className="h-8 text-xs text-right">
-                                  受渡金額
-                                </TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {getCycleHistory(item).map((hist) => (
-                                <TableRow
-                                  key={hist.id}
-                                  className="border-b border-slate-50 last:border-0"
-                                >
-                                  <TableCell className="py-1 text-xs text-slate-600">
-                                    {hist.transaction_date}
-                                  </TableCell>
-                                  <TableCell className="py-1 text-xs font-medium text-slate-700">
-                                    {formatTransactionType(
-                                      hist.transaction_type,
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="py-1 text-xs text-right font-mono">
-                                    {hist.quantity?.toLocaleString()}
-                                  </TableCell>
-                                  <TableCell className="py-1 text-xs text-right font-mono">
-                                    {hist.unit_price
-                                      ? `¥${hist.unit_price.toLocaleString()}`
-                                      : "-"}
-                                  </TableCell>
-                                  <TableCell className="py-1 text-xs text-right font-mono">
-                                    {hist.amount
-                                      ? `¥${hist.amount.toLocaleString()}`
-                                      : "-"}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
+                      </TableCell>
+                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
+                        {item.quantity.toLocaleString()}
+                        {item.entryType === "STOCK_SPLIT" && (
+                          <span className="text-xs text-teal-600 ml-1">
+                            (分割)
+                          </span>
+                        )}
+                        {item.entryType === "STOCK_TRANSFER_IN" && (
+                          <span className="text-xs text-teal-600 ml-1">
+                            (入庫)
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="p-2 text-slate-600 whitespace-nowrap">
+                        {item.entryDate}
+                      </TableCell>
+                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
+                        ¥{item.entryPrice.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
+                        ¥{(item.entryPrice * item.quantity).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="p-2 text-slate-600 whitespace-nowrap">
+                        {item.exitDate}
+                      </TableCell>
+                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
+                        {isNonTradeExit
+                          ? item.exitType === "STOCK_MERGE"
+                            ? "併合"
+                            : "出庫"
+                          : `¥${item.exitPrice.toLocaleString()}`}
+                      </TableCell>
+                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
+                        {isNonTradeExit
+                          ? "-"
+                          : `¥${(item.exitPrice * item.quantity).toLocaleString()}`}
+                      </TableCell>
+                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
+                        {item.holdingPeriod}日
+                      </TableCell>
+                      <TableCell className="p-2 text-right whitespace-nowrap">
+                        {!isNonTradeExit ? (
+                          <div className="flex flex-col items-end">
+                            <span
+                              className={`font-bold ${
+                                isPositive ? "text-blue-600" : "text-red-600"
+                              }`}
+                            >
+                              {isPositive ? "+" : ""}
+                              {item.realizedPL?.toLocaleString()}
+                            </span>
+                            <span
+                              className={`text-xs ${isPositive ? "text-blue-600" : "text-red-600"}`}
+                            >
+                              ({plPercent > 0 ? "+" : ""}
+                              {plPercent.toFixed(1)}%)
+                            </span>
+                          </div>
+                        ) : (
+                          "-"
+                        )}
                       </TableCell>
                     </TableRow>
-                  )}
-                </Fragment>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    {isExpanded && (
+                      <TableRow className="bg-slate-50/50">
+                        <TableCell colSpan={12} className="p-4">
+                          <div className="bg-white rounded border border-slate-200 p-3">
+                            <h4 className="text-xs font-bold text-slate-500 mb-2">
+                              取引履歴詳細 ({item.entryDate} 〜 {item.exitDate})
+                            </h4>
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="border-b border-slate-100">
+                                  <TableHead className="h-8 text-xs">
+                                    日付
+                                  </TableHead>
+                                  <TableHead className="h-8 text-xs">
+                                    取引
+                                  </TableHead>
+                                  <TableHead className="h-8 text-xs text-right">
+                                    数量
+                                  </TableHead>
+                                  <TableHead className="h-8 text-xs text-right">
+                                    単価
+                                  </TableHead>
+                                  <TableHead className="h-8 text-xs text-right">
+                                    受渡金額
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {getCycleHistory(item).map((hist) => (
+                                  <TableRow
+                                    key={hist.id}
+                                    className="border-b border-slate-50 last:border-0"
+                                  >
+                                    <TableCell className="py-1 text-xs text-slate-600">
+                                      {hist.transaction_date}
+                                    </TableCell>
+                                    <TableCell className="py-1 text-xs font-medium text-slate-700">
+                                      {formatTransactionType(
+                                        hist.transaction_type,
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="py-1 text-xs text-right font-mono">
+                                      {hist.quantity?.toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="py-1 text-xs text-right font-mono">
+                                      {hist.unit_price
+                                        ? `¥${hist.unit_price.toLocaleString()}`
+                                        : "-"}
+                                    </TableCell>
+                                    <TableCell className="py-1 text-xs text-right font-mono">
+                                      {hist.amount
+                                        ? `¥${hist.amount.toLocaleString()}`
+                                        : "-"}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>{" "}
+        </div>
       </div>
+
       <div className="p-4 text-xs text-slate-500 text-right">
         ※配当金は本一覧には含まれません。
       </div>

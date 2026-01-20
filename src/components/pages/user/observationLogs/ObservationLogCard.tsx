@@ -49,7 +49,7 @@ export function ObservationLogCard({
     >
       {/* 操作ボタンエリア */}
       {log.isActive && (
-        <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10 bg-white/90 rounded-full p-0.5 shadow-sm border border-slate-100">
+        <div className="absolute bottom-2 right-2 flex gap-1 transition-all z-10 bg-white/90 rounded-full p-0.5 shadow-sm border border-slate-100">
           {log.stocks.length > 0 && (
             <Link
               href={`/stock?code=${log.stocks[0].code}`}
