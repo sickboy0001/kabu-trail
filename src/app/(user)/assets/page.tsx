@@ -1,4 +1,4 @@
-import AssetsHistoryClient from "@/components/pages/user/assets/history/AssetsHistoryClient";
+import AssetsHistoryClient from "@/components/pages/user/assets/AssetsHistoryClient";
 import { createKabuTrailServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 

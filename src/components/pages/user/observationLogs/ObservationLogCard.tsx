@@ -79,7 +79,7 @@ export function ObservationLogCard({
 
       <CardHeader className="p-3 pb-1">
         <div className="flex items-center gap-2">
-          <div className="flex items-center text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0">
+          <div className="flex items-center text-[10px] text-slate-400 whitespace-nowrap shrink-0">
             <CalendarIcon className="mr-1 h-3 w-3" />
             {log.date}
           </div>
@@ -124,7 +124,7 @@ export function ObservationLogCard({
         <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">
           {log.content}
         </p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 min-h-[20px]">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 min-h-20px">
           <div className="flex flex-wrap gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
             {log.tags.map((tag) => (
               <span

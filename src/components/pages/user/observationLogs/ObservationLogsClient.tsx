@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
-import { Plus, Filter, ArrowUpDown, Undo2, X } from "lucide-react";
+import { Plus, Filter, ArrowUpDown, Undo2, X, LayoutGrid } from "lucide-react";
 import { ObservationLogCard } from "./ObservationLogCard";
 import {
   ObservationLogModal,
@@ -110,6 +110,7 @@ export default function ObservationLogsClient({ user }: Props) {
   const [sortKey, setSortKey] = useState<
     "date" | "rawCreatedAt" | "rawUpdatedAt"
   >("date");
+  const [columns, setColumns] = useState(3);
 
   // Undo用状態
   const [undoLogId, setUndoLogId] = useState<number | null>(null);
@@ -278,6 +279,13 @@ export default function ObservationLogsClient({ user }: Props) {
     return result;
   }, [logs, showInactive, filterStockText, sortKey]);
 
+  const columnClassMap: { [key: number]: string } = {
+    3: "lg:grid-cols-3",
+    4: "lg:grid-cols-4",
+    5: "lg:grid-cols-5",
+  };
+  const gridClass = columnClassMap[columns] || "lg:grid-cols-3";
+
   return (
     <div className="space-y-6 w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
@@ -339,6 +347,26 @@ export default function ObservationLogsClient({ user }: Props) {
           </select>
         </div>
 
+        <div className="flex items-center gap-2">
+          <LayoutGrid size={16} className="text-slate-500" />
+          <div className="flex items-center border border-slate-300 rounded bg-white text-sm">
+            {[3, 4, 5].map((col) => (
+              <button
+                key={col}
+                onClick={() => setColumns(col)}
+                className={`px-2.5 py-0.5 transition-colors first:rounded-l last:rounded-r border-l first:border-l-0 border-slate-300 ${
+                  columns === col
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+                title={`${col}列表示`}
+              >
+                {col}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <label className="flex items-center gap-2 cursor-pointer select-none ml-auto">
           <input
             type="checkbox"
@@ -353,7 +381,7 @@ export default function ObservationLogsClient({ user }: Props) {
       {isLoading ? (
         <div className="text-center py-10 text-slate-500">読み込み中...</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${gridClass} gap-4`}>
           {filteredAndSortedLogs.map((log) => (
             <ObservationLogCard
               key={log.id}

@@ -107,9 +107,26 @@ export default function RoundTripTradeTable({
       STOCK_TRANSFER_OUT: "出庫",
       CREDIT_OPEN: "信用新規",
       CREDIT_CLOSE: "信用返済",
-      DIVIDEND: "配当",
     };
     return map[type] || type;
+  };
+
+  const getTradeTypeBadge = (type?: string) => {
+    if (type === "CREDIT_OPEN") {
+      return (
+        <span className="ml-1 text-[10px] px-1 py-0.5 rounded border border-purple-200 bg-purple-50 text-purple-700 whitespace-nowrap">
+          信用
+        </span>
+      );
+    }
+    if (type === "BUY") {
+      return (
+        <span className="ml-1 text-[10px] px-1 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 whitespace-nowrap">
+          現物
+        </span>
+      );
+    }
+    return null;
   };
 
   if (filtered.length === 0) {
@@ -142,16 +159,10 @@ export default function RoundTripTradeTable({
                   取得日
                 </TableHead>
                 <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
-                  取得単価
-                </TableHead>
-                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
                   取得金額
                 </TableHead>
                 <TableHead className="p-2 font-medium text-slate-600 whitespace-nowrap">
                   売却日
-                </TableHead>
-                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
-                  売却単価
                 </TableHead>
                 <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
                   売却金額
@@ -176,6 +187,12 @@ export default function RoundTripTradeTable({
                 const plPercent =
                   totalEntryAmount !== 0 && item.realizedPL !== undefined
                     ? (item.realizedPL / totalEntryAmount) * 100
+                    : 0;
+
+                const periodForCalc = Math.max(1, item.holdingPeriod);
+                const dailyPL =
+                  item.realizedPL !== undefined
+                    ? item.realizedPL / periodForCalc
                     : 0;
 
                 return (
@@ -207,9 +224,12 @@ export default function RoundTripTradeTable({
                         </Link>
                       </TableCell>
                       <TableCell className="p-2 whitespace-nowrap">
-                        <span className="rounded text-xs font-medium bg-slate-100 text-slate-600 px-1.5 py-0.5">
-                          {item.accountName}
-                        </span>
+                        <div className="flex items-center">
+                          <span className="rounded text-xs font-medium bg-slate-100 text-slate-600 px-1.5 py-0.5">
+                            {item.accountName}
+                          </span>
+                          {getTradeTypeBadge(item.entryType)}
+                        </div>
                       </TableCell>
                       <TableCell className="p-2 text-right whitespace-nowrap font-mono">
                         {item.quantity.toLocaleString()}
@@ -227,29 +247,60 @@ export default function RoundTripTradeTable({
                       <TableCell className="p-2 text-slate-600 whitespace-nowrap">
                         {item.entryDate}
                       </TableCell>
-                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                        ¥{item.entryPrice.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                        ¥{(item.entryPrice * item.quantity).toLocaleString()}
+                      <TableCell className="p-2 text-right whitespace-nowrap">
+                        <div className="flex flex-col items-end">
+                          <span className="font-mono">
+                            ¥
+                            {(item.entryPrice * item.quantity).toLocaleString()}
+                          </span>
+                          <span className="text-xs text-slate-500 font-mono">
+                            (＠¥{item.entryPrice.toLocaleString()})
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="p-2 text-slate-600 whitespace-nowrap">
                         {item.exitDate}
                       </TableCell>
-                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                        {isNonTradeExit
-                          ? item.exitType === "STOCK_MERGE"
-                            ? "併合"
-                            : "出庫"
-                          : `¥${item.exitPrice.toLocaleString()}`}
+                      <TableCell className="p-2 text-right whitespace-nowrap">
+                        {isNonTradeExit ? (
+                          <div className="flex flex-col items-end">
+                            <span className="font-mono">-</span>
+                            <span className="text-xs text-slate-500">
+                              {item.exitType === "STOCK_MERGE"
+                                ? "併合"
+                                : "出庫"}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-end">
+                            <span className="font-mono">
+                              ¥
+                              {(
+                                item.exitPrice * item.quantity
+                              ).toLocaleString()}
+                            </span>
+                            <span className="text-xs text-slate-500 font-mono">
+                              (＠¥{item.exitPrice.toLocaleString()})
+                            </span>
+                          </div>
+                        )}
                       </TableCell>
-                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                        {isNonTradeExit
-                          ? "-"
-                          : `¥${(item.exitPrice * item.quantity).toLocaleString()}`}
-                      </TableCell>
-                      <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                        {item.holdingPeriod}日
+                      <TableCell className="p-2 text-right whitespace-nowrap">
+                        <div className="flex flex-col items-end">
+                          <span className="font-mono">
+                            {item.holdingPeriod}日
+                          </span>
+                          {!isNonTradeExit ? (
+                            <span
+                              className={`text-xs font-mono ${
+                                dailyPL >= 0 ? "text-blue-600" : "text-red-600"
+                              }`}
+                            >
+                              ({dailyPL >= 0 ? "+" : ""}
+                              {Math.round(dailyPL).toLocaleString()})
+                            </span>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell className="p-2 text-right whitespace-nowrap">
                         {!isNonTradeExit ? (
@@ -276,7 +327,7 @@ export default function RoundTripTradeTable({
                     </TableRow>
                     {isExpanded && (
                       <TableRow className="bg-slate-50/50">
-                        <TableCell colSpan={12} className="p-4">
+                        <TableCell colSpan={10} className="p-4">
                           <div className="bg-white rounded border border-slate-200 p-3">
                             <h4 className="text-xs font-bold text-slate-500 mb-2">
                               取引履歴詳細 ({item.entryDate} 〜 {item.exitDate})

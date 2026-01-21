@@ -55,7 +55,21 @@ export default function RoundTripTradeClient({ user, onToggleSidebar }: Props) {
       if (!user.id) return;
       try {
         const data = await fetchTransactions(user.id);
-        setTransactions(data);
+        // この画面で扱う取引種別のみに絞り込む (配当金などを除外)
+        const allowedTypes = new Set([
+          "BUY",
+          "SELL",
+          "CREDIT_OPEN",
+          "CREDIT_CLOSE",
+          "STOCK_SPLIT",
+          "STOCK_MERGE",
+          "STOCK_TRANSFER_IN",
+          "STOCK_TRANSFER_OUT",
+        ]);
+        const filteredData = data.filter((t) =>
+          allowedTypes.has(t.transaction_type as string),
+        );
+        setTransactions(filteredData);
       } catch (error) {
         console.error("Failed to fetch transactions", error);
       }
