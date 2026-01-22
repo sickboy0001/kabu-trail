@@ -1,258 +1,316 @@
 "use client";
 
+import React, { useState } from "react";
+import DashboardSettingClient from "./setting/DashboardSettings";
 import { User } from "@supabase/supabase-js";
-import { useState } from "react";
-import { Settings } from "lucide-react";
-import AssetSummaryCards, {
-  SUMMARY_ITEMS_DEF,
-  AssetSummaryVisibility,
-} from "./AssetSummaryCards";
-import AssetHistoryChart from "./AssetHistoryChart";
-import PortfolioPieChart from "./PortfolioPieChart";
-import HoldingsTable from "./HoldingsTable";
-import DashboardSettings, { DashboardItem } from "./setting/DashboardSettings";
+
+// --- 型定義 ---
+type WidgetSettings = {
+  period?: string;
+  base_date_type?: string;
+  bucket_id?: string | null;
+  [key: string]: any;
+};
+
+type Widget = {
+  id: string;
+  type: string;
+  title: string;
+  cols: number; // 1 ~ 6
+  order: number;
+  settings: WidgetSettings;
+};
+
+type DashboardPattern = {
+  id: string;
+  name: string;
+  is_default: boolean;
+  columns: number;
+  widgets: Widget[];
+};
+
+// --- デフォルトのJSON構造（初期表示用） ---
+const DEFAULT_PATTERN: DashboardPattern = {
+  id: "pattern_standard",
+  name: "標準レイアウト",
+  is_default: true,
+  columns: 3,
+  widgets: [
+    {
+      id: "w1",
+      type: "asset_summary",
+      title: "資産情報",
+      cols: 1,
+      order: 1,
+      settings: {},
+    },
+    {
+      id: "w2",
+      type: "profit_loss_summary",
+      title: "評価損益合計",
+      cols: 1,
+      order: 2,
+      settings: {},
+    },
+    {
+      id: "w3",
+      type: "day_over_day",
+      title: "前日比",
+      cols: 1,
+      order: 3,
+      settings: {},
+    },
+    {
+      id: "w4",
+      type: "asset_history",
+      title: "資産推移（1年）",
+      cols: 3,
+      order: 4,
+      settings: { period: "1y" },
+    },
+    {
+      id: "w5",
+      type: "portfolio_pie",
+      title: "ポートフォリオ",
+      cols: 2,
+      order: 5,
+      settings: {},
+    },
+    {
+      id: "w6",
+      type: "stock_list",
+      title: "保有銘柄一覧",
+      cols: 4,
+      order: 6,
+      settings: {},
+    },
+  ],
+};
+
+const PATTERN_SIMPLE: DashboardPattern = {
+  id: "pattern_simple",
+  name: "シンプルレイアウト",
+  is_default: false,
+  columns: 2,
+  widgets: [
+    {
+      id: "w1",
+      type: "asset_summary",
+      title: "資産情報",
+      cols: 2,
+      order: 1,
+      settings: {},
+    },
+    {
+      id: "w4",
+      type: "asset_history",
+      title: "資産推移（1年）",
+      cols: 2,
+      order: 2,
+      settings: { period: "1y" },
+    },
+  ],
+};
+
+const INITIAL_PATTERNS = [DEFAULT_PATTERN, PATTERN_SIMPLE];
+
+// --- 仮のウィジェットコンポーネント ---
+const PlaceholderWidget = ({ widget }: { widget: Widget }) => (
+  <div className="h-full min-h-40 p-4 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
+    <h3 className="text-sm font-bold text-gray-500 mb-2 border-b pb-1">
+      {widget.title}
+    </h3>
+    <div className="grow flex items-center justify-center text-gray-400 italic">
+      {widget.type} (cols: {widget.cols})
+    </div>
+  </div>
+);
 
 type Props = {
   user: User;
 };
 
-// ダミーデータ型定義
-export type Holding = {
-  id: string;
-  code: string;
-  name: string;
-  quantity: number;
-  averagePrice: number; // 平均取得単価
-  currentPrice: number; // 現在値
-  previousClose: number; // 前日終値
-};
+// --- メインコンポーネント ---
+const DashboardClient = ({ user }: Props) => {
+  // 実際には Supabase から取得するが、一旦定数を使用
+  const [patterns, setPatterns] =
+    useState<DashboardPattern[]>(INITIAL_PATTERNS);
 
-export type AccountSummary = {
-  totalAssets: number; // 総資産
-  cashBalance: number; // 現金残高
-  stockValue: number; // 株式評価額
-  totalGainLoss: number; // 評価損益
-  totalGainLossPercent: number; // 評価損益率
-};
+  const initialPatternId =
+    INITIAL_PATTERNS.find((p) => p.is_default)?.id || INITIAL_PATTERNS[0].id;
+  const [currentPatternId, setCurrentPatternId] =
+    useState<string>(initialPatternId);
 
-export default function DashboardClient({ user }: Props) {
-  // ダミーデータ
-  const holdings: Holding[] = [
-    {
-      id: "1",
-      code: "7203",
-      name: "トヨタ自動車",
-      quantity: 100,
-      averagePrice: 2800,
-      currentPrice: 3150,
-      previousClose: 3100,
-    },
-    {
-      id: "2",
-      code: "9984",
-      name: "ソフトバンクG",
-      quantity: 200,
-      averagePrice: 6500,
-      currentPrice: 6200,
-      previousClose: 6100,
-    },
-    {
-      id: "3",
-      code: "8306",
-      name: "三菱UFJ",
-      quantity: 500,
-      averagePrice: 1200,
-      currentPrice: 1450,
-      previousClose: 1460,
-    },
-    {
-      id: "4",
-      code: "7011",
-      name: "三菱重工",
-      quantity: 300,
-      averagePrice: 1800,
-      currentPrice: 2300,
-      previousClose: 2250,
-    },
-    {
-      id: "5",
-      code: "5401",
-      name: "日本製鉄",
-      quantity: 200,
-      averagePrice: 3000,
-      currentPrice: 3500,
-      previousClose: 3480,
-    },
-    {
-      id: "6",
-      code: "9432",
-      name: "NTT",
-      quantity: 1000,
-      averagePrice: 150,
-      currentPrice: 170,
-      previousClose: 172,
-    },
-  ];
+  const currentPattern =
+    patterns.find((p) => p.id === currentPatternId) || patterns[0];
 
-  // 集計計算
-  const stockValue = holdings.reduce(
-    (sum, h) => sum + h.currentPrice * h.quantity,
-    0,
-  );
-  const acquisitionCost = holdings.reduce(
-    (sum, h) => sum + h.averagePrice * h.quantity,
-    0,
-  );
-  const cashBalance = 1500000; // 現金残高（ダミー）
-  const totalAssets = stockValue + cashBalance;
-  const totalGainLoss = stockValue - acquisitionCost;
-  const totalGainLossPercent =
-    acquisitionCost > 0 ? (totalGainLoss / acquisitionCost) * 100 : 0;
+  // JSON編集用のState
+  const [jsonInput, setJsonInput] = useState(JSON.stringify(patterns, null, 2));
+  const [error, setError] = useState<string | null>(null);
+  const [showJsonEditor, setShowJsonEditor] = useState(false);
+  const [isSettingMode, setIsSettingMode] = useState(false);
 
-  const summary: AccountSummary = {
-    totalAssets,
-    cashBalance,
-    stockValue,
-    totalGainLoss,
-    totalGainLossPercent,
-  };
+  const handleApplyJson = () => {
+    try {
+      const parsed = JSON.parse(jsonInput);
+      if (!Array.isArray(parsed)) {
+        throw new Error("配列形式で入力してください");
+      }
+      setPatterns(parsed);
 
-  // グラフ用のダミー資産推移データ
-  const assetHistory = Array.from({ length: 12 }).map((_, i) => {
-    const date = new Date();
-    // 過去11ヶ月前から今月まで
-    date.setMonth(date.getMonth() - (11 - i));
-    const month = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(
-      2,
-      "0",
-    )}`;
-    // ダミーの資産額を生成（少しずつ増えていく感じ）
-    const asset =
-      totalAssets * (0.8 + i * 0.02) + Math.random() * 200000 - 100000;
-    return { month, 資産額: Math.round(asset) };
-  });
+      // 現在選択中のIDが存在するか確認し、なければ先頭を選択
+      if (
+        !parsed.find((p: DashboardPattern) => p.id === currentPatternId) &&
+        parsed.length > 0
+      ) {
+        setCurrentPatternId(parsed[0].id);
+      }
 
-  // ダッシュボード設定・レイアウト状態
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [layoutItems, setLayoutItems] = useState<DashboardItem[]>([
-    { id: "summary", label: "資産サマリー", visible: true, colSpan: 4 },
-    { id: "history", label: "資産推移チャート", visible: true, colSpan: 3 },
-    { id: "pie", label: "ポートフォリオ", visible: true, colSpan: 1 },
-    { id: "holdings", label: "保有銘柄一覧", visible: true, colSpan: 4 },
-  ]);
-  const [columnCount, setColumnCount] = useState(3);
-  const [summaryVisibility, setSummaryVisibility] = useState<AssetSummaryVisibility>(
-    {
-      totalAssets: true,
-      totalGainLoss: true,
-      dayChange: true,
-    },
-  );
-
-  const handleSaveSettings = (
-    newItems: DashboardItem[],
-    newColumnCount: number,
-    newSummaryVisibility: Record<string, boolean>,
-  ) => {
-    setLayoutItems(newItems);
-    setColumnCount(newColumnCount);
-    setSummaryVisibility(newSummaryVisibility as AssetSummaryVisibility);
-    setIsSettingsOpen(false);
-  };
-
-  const renderWidget = (id: string, className = "") => {
-    switch (id) {
-      case "summary":
-        return (
-          <AssetSummaryCards
-            key="summary"
-            summary={summary}
-            columnCount={columnCount}
-            visibility={summaryVisibility}
-          />
-        );
-      case "history":
-        return (
-          <AssetHistoryChart
-            key="history"
-            data={assetHistory}
-            className={className}
-          />
-        );
-      case "pie":
-        return (
-          <PortfolioPieChart
-            key="pie"
-            holdings={holdings}
-            className={className}
-          />
-        );
-      case "holdings":
-        return <HoldingsTable key="holdings" holdings={holdings} />;
-      default:
-        return null;
+      setError(null);
+    } catch (e) {
+      setError("JSONパースエラー: 正しいJSON形式（配列）で入力してください");
     }
   };
 
-  const renderDashboardContent = () => {
-    const visibleItems = layoutItems.filter((i) => i.visible);
-
-    // Tailwindのクラス名を動的に生成せず、完全な文字列として定義することで
-    // ビルド時に正しく検出されるようにします
-    const getColSpanClass = (span?: number) => {
-      switch (span) {
-        case 1:
-          return "md:col-span-1";
-        case 2:
-          return "md:col-span-2";
-        case 3:
-          return "md:col-span-3";
-        default:
-          return "md:col-span-4";
-      }
-    };
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {visibleItems.map((item) => (
-          <div
-            key={item.id}
-            // className={`col-span-1 md:col-span-${item.colSpan || 4}`}
-            className={`col-span-1 ${getColSpanClass(item.colSpan)}`}
-          >
-            {renderWidget(item.id, "h-full")}
-          </div>
-        ))}
-      </div>
-    );
+  const handlePatternChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCurrentPatternId(e.target.value);
   };
 
+  // 列数に応じたクラス名を決定するヘルパー
+  const getGridClass = (cols: number) => {
+    switch (cols) {
+      case 1:
+        return "md:grid-cols-1";
+      case 2:
+        return "md:grid-cols-2";
+      case 3:
+        return "md:grid-cols-3";
+      case 4:
+        return "md:grid-cols-4";
+      case 5:
+        return "md:grid-cols-5";
+      default:
+        return "md:grid-cols-6";
+    }
+  };
+
+  // 設定画面からの保存処理
+  const handleSaveSettings = (newPatterns: DashboardPattern[]) => {
+    setPatterns(newPatterns);
+    setJsonInput(JSON.stringify(newPatterns, null, 2)); // JSONエディタ側も同期
+
+    // 現在選択中のIDが削除されていた場合、先頭を選択する
+    if (
+      !newPatterns.find((p) => p.id === currentPatternId) &&
+      newPatterns.length > 0
+    ) {
+      setCurrentPatternId(newPatterns[0].id);
+    }
+    setIsSettingMode(false);
+  };
+
+  if (isSettingMode) {
+    return (
+      <DashboardSettingClient
+        initialPatterns={patterns}
+        currentPatternId={currentPatternId}
+        onSave={handleSaveSettings}
+        onCancel={() => setIsSettingMode(false)}
+      />
+    );
+  }
+
   return (
-    <div className="space-y-6 md:space-y-8">
-      {/* ヘッダー */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-800">ダッシュボード</h1>
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
-          title="ダッシュボード設定"
-        >
-          <Settings size={20} />
-        </button>
+    <div className="bg-gray-50 min-h-screen p-6">
+      {/* JSON編集エリア */}
+      {showJsonEditor && (
+        <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            レイアウトJSON編集
+          </label>
+          <textarea
+            className="w-full h-40 p-2 text-xs font-mono border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={jsonInput}
+            onChange={(e) => setJsonInput(e.target.value)}
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={handleApplyJson}
+              className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded hover:bg-green-700 transition-colors"
+            >
+              JSONを適用して更新
+            </button>
+            {error && <span className="text-red-500 text-sm">{error}</span>}
+          </div>
+        </div>
+      )}
+
+      {/* ヘッダーエリア */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-800">
+              {currentPattern.name}
+            </h1>
+            <select
+              value={currentPattern.id}
+              onChange={handlePatternChange}
+              className="px-3 py-1 bg-white border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {patterns.map((pattern) => (
+                <option key={pattern.id} value={pattern.id}>
+                  {pattern.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            ダッシュボードの概要を表示しています
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowJsonEditor(!showJsonEditor)}
+            className="px-4 py-2 bg-white border rounded shadow-sm hover:bg-gray-50"
+          >
+            📝 JSON編集
+          </button>
+          <button className="px-4 py-2 bg-white border rounded shadow-sm hover:bg-gray-50">
+            🔄 更新
+          </button>
+          <button
+            onClick={() => setIsSettingMode(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded shadow-sm hover:bg-blue-700"
+          >
+            ⚙️ 設定
+          </button>
+        </div>
       </div>
 
-      {isSettingsOpen ? (
-        <DashboardSettings
-          initialItems={layoutItems}
-          initialColumnCount={columnCount}
-          initialSummaryVisibility={summaryVisibility}
-          summaryItemDefs={SUMMARY_ITEMS_DEF}
-          onSave={handleSaveSettings}
-          onCancel={() => setIsSettingsOpen(false)}
-        />
-      ) : (
-        renderDashboardContent()
-      )}
+      {/* グリッドレイアウトエリア */}
+      {/* md:grid-cols-6 でPC版は6列。 
+          gap-4 でウィジェット間の隙間を確保。
+      */}
+      <div
+        className={`grid grid-cols-1 gap-4 ${getGridClass(currentPattern.columns || 6)}`}
+      >
+        {currentPattern.widgets
+          .sort((a, b) => a.order - b.order)
+          .map((widget) => (
+            <div
+              key={widget.id}
+              style={{
+                // Tailwindの動的な col-span はパージされる可能性があるため、style or 固定クラスを使用
+                gridColumn: `span ${widget.cols} / span ${widget.cols}`,
+              }}
+              className="w-full"
+            >
+              <PlaceholderWidget widget={widget} />
+            </div>
+          ))}
+      </div>
     </div>
   );
-}
+};
+
+export default DashboardClient;
