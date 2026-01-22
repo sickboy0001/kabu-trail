@@ -367,7 +367,7 @@ export default function HoldingsClient({ user, onToggleSidebar }: Props) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+      <div className="md:bg-white md:rounded-xl md:shadow-sm md:border md:border-slate-200">
         <OpenPositionsTable
           filterText={filterText}
           positions={positions}

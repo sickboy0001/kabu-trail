@@ -65,13 +65,30 @@ export default function RoundTripTradeTable({
         if (endDate && t.entryDate > endDate) return false;
         return true;
       })
-      .map((t) => ({
-        ...t,
-        holdingPeriod: Math.floor(
+      .map((t) => {
+        const holdingPeriod = Math.floor(
           (new Date(t.exitDate).getTime() - new Date(t.entryDate).getTime()) /
             (1000 * 60 * 60 * 24),
-        ),
-      }))
+        );
+        const totalEntryAmount = t.entryPrice * t.quantity;
+        const realizedPL = t.realizedPL ?? 0;
+        const plPercent =
+          totalEntryAmount !== 0 ? (realizedPL / totalEntryAmount) * 100 : 0;
+        const periodForCalc = Math.max(1, holdingPeriod);
+        const dailyPL = realizedPL / periodForCalc;
+        const isPositive = realizedPL >= 0;
+        const isNonTradeExit =
+          t.exitType === "STOCK_MERGE" || t.exitType === "STOCK_TRANSFER_OUT";
+
+        return {
+          ...t,
+          holdingPeriod,
+          plPercent,
+          dailyPL,
+          isPositive,
+          isNonTradeExit,
+        };
+      })
       .sort((a, b) => {
         // 売却日の降順、次に銘柄コード順
         const exitDateDiff =
@@ -139,7 +156,8 @@ export default function RoundTripTradeTable({
 
   return (
     <div className="flex flex-col">
-      <div className="rounded-md border overflow-hidden">
+      {/* PC表示: テーブル */}
+      <div className="hidden md:block rounded-md border overflow-hidden">
         {/* 枠線用 */}
         <div className="overflow-x-auto w-full">
           <Table className="min-w-max">
@@ -177,23 +195,7 @@ export default function RoundTripTradeTable({
             </TableHeader>
             <TableBody>
               {filtered.map((item) => {
-                const isPositive = (item.realizedPL ?? 0) >= 0;
-                const isNonTradeExit =
-                  item.exitType === "STOCK_MERGE" ||
-                  item.exitType === "STOCK_TRANSFER_OUT";
                 const isExpanded = expandedIds.has(item.id);
-
-                const totalEntryAmount = item.entryPrice * item.quantity;
-                const plPercent =
-                  totalEntryAmount !== 0 && item.realizedPL !== undefined
-                    ? (item.realizedPL / totalEntryAmount) * 100
-                    : 0;
-
-                const periodForCalc = Math.max(1, item.holdingPeriod);
-                const dailyPL =
-                  item.realizedPL !== undefined
-                    ? item.realizedPL / periodForCalc
-                    : 0;
 
                 return (
                   <Fragment key={item.id}>
@@ -262,7 +264,7 @@ export default function RoundTripTradeTable({
                         {item.exitDate}
                       </TableCell>
                       <TableCell className="p-2 text-right whitespace-nowrap">
-                        {isNonTradeExit ? (
+                        {item.isNonTradeExit ? (
                           <div className="flex flex-col items-end">
                             <span className="font-mono">-</span>
                             <span className="text-xs text-slate-500">
@@ -290,34 +292,38 @@ export default function RoundTripTradeTable({
                           <span className="font-mono">
                             {item.holdingPeriod}日
                           </span>
-                          {!isNonTradeExit ? (
+                          {!item.isNonTradeExit ? (
                             <span
                               className={`text-xs font-mono ${
-                                dailyPL >= 0 ? "text-blue-600" : "text-red-600"
+                                item.dailyPL >= 0
+                                  ? "text-blue-600"
+                                  : "text-red-600"
                               }`}
                             >
-                              ({dailyPL >= 0 ? "+" : ""}
-                              {Math.round(dailyPL).toLocaleString()})
+                              ({item.dailyPL >= 0 ? "+" : ""}
+                              {Math.round(item.dailyPL).toLocaleString()})
                             </span>
                           ) : null}
                         </div>
                       </TableCell>
                       <TableCell className="p-2 text-right whitespace-nowrap">
-                        {!isNonTradeExit ? (
+                        {!item.isNonTradeExit ? (
                           <div className="flex flex-col items-end">
                             <span
                               className={`font-bold ${
-                                isPositive ? "text-blue-600" : "text-red-600"
+                                item.isPositive
+                                  ? "text-blue-600"
+                                  : "text-red-600"
                               }`}
                             >
-                              {isPositive ? "+" : ""}
+                              {item.isPositive ? "+" : ""}
                               {item.realizedPL?.toLocaleString()}
                             </span>
                             <span
-                              className={`text-xs ${isPositive ? "text-blue-600" : "text-red-600"}`}
+                              className={`text-xs ${item.isPositive ? "text-blue-600" : "text-red-600"}`}
                             >
-                              ({plPercent > 0 ? "+" : ""}
-                              {plPercent.toFixed(1)}%)
+                              ({item.plPercent > 0 ? "+" : ""}
+                              {item.plPercent.toFixed(1)}%)
                             </span>
                           </div>
                         ) : (
@@ -393,6 +399,129 @@ export default function RoundTripTradeTable({
             </TableBody>
           </Table>{" "}
         </div>
+      </div>
+
+      {/* スマホ表示: カードリスト */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((item) => {
+          const isExpanded = expandedIds.has(item.id);
+
+          return (
+            <div
+              key={item.id}
+              className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm"
+            >
+              {/* ヘッダー部分: 銘柄と損益 */}
+              <div className="flex justify-between items-start mb-2 pb-2 border-b border-slate-50">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/stock?code=${item.code}`}
+                      className="font-bold text-slate-800 text-sm"
+                    >
+                      {item.name}
+                    </Link>
+                    <span className="text-xs text-slate-400">{item.code}</span>
+                  </div>
+                  <div className="flex items-center mt-1 gap-1">
+                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
+                      {item.accountName}
+                    </span>
+                    {getTradeTypeBadge(item.entryType)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  {!item.isNonTradeExit ? (
+                    <>
+                      <div
+                        className={`font-bold text-sm ${item.isPositive ? "text-blue-600" : "text-red-600"}`}
+                      >
+                        {item.isPositive ? "+" : ""}
+                        {item.realizedPL?.toLocaleString()}
+                      </div>
+                      <div
+                        className={`text-[10px] ${item.isPositive ? "text-blue-600" : "text-red-600"}`}
+                      >
+                        ({item.plPercent > 0 ? "+" : ""}
+                        {item.plPercent.toFixed(1)}%)
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-xs text-slate-500">-</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 詳細情報グリッド */}
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-slate-600 mb-3">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">取得日</span>
+                  <span>{item.entryDate}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">売却日</span>
+                  <span>{item.exitDate}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">株数</span>
+                  <span>{item.quantity.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">保有期間</span>
+                  <span>{item.holdingPeriod}日</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">取得単価</span>
+                  <span>¥{item.entryPrice.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">売却単価</span>
+                  <span>¥{item.exitPrice.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* 詳細展開ボタン */}
+              <button
+                onClick={() => toggleRow(item.id)}
+                className="w-full flex items-center justify-center py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 text-xs rounded transition-colors"
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronDown size={14} className="mr-1" /> 閉じる
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight size={14} className="mr-1" /> 取引履歴詳細
+                  </>
+                )}
+              </button>
+
+              {/* 詳細テーブル（展開時） */}
+              {isExpanded && (
+                <div className="mt-2 pt-2 border-t border-slate-100">
+                  <div className="space-y-2">
+                    {getCycleHistory(item).map((hist) => (
+                      <div
+                        key={hist.id}
+                        className="flex justify-between items-center text-[10px] border-b border-slate-50 pb-1 last:border-0"
+                      >
+                        <div className="text-slate-500">
+                          {hist.transaction_date}
+                        </div>
+                        <div className="font-medium text-slate-700">
+                          {formatTransactionType(hist.transaction_type)}
+                        </div>
+                        <div className="text-right font-mono text-slate-600">
+                          {hist.quantity?.toLocaleString()}株
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="p-4 text-xs text-slate-500 text-right">

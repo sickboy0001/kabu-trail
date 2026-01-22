@@ -1,6 +1,5 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
-import type { Position } from "./HoldingsClient";
 import {
   Table,
   TableBody,
@@ -9,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Position } from "./HoldingsClient";
 
 type Props = {
   filterText: string;
@@ -24,151 +24,185 @@ export default function OpenPositionsTable({
   endDate,
 }: Props) {
   const filtered = useMemo(() => {
-    const today = new Date();
-    const todayTime = today.getTime();
-
-    return positions
-      .filter((p) => {
-        if (!p.code) return false;
-        const matchesText =
-          p.name.includes(filterText) || p.code.includes(filterText);
-        if (!matchesText) return false;
-        if (startDate && p.entryDate < startDate) return false;
-        if (endDate && p.entryDate > endDate) return false;
-        return true;
-      })
-      .map((p) => ({
-        ...p,
-        entryTotal: p.entryPrice * p.quantity,
-        valuationTotal: p.currentPrice * p.quantity,
-        valuationPL:
-          p.valuationPL ?? (p.currentPrice - p.entryPrice) * p.quantity,
-        holdingPeriod: Math.floor(
-          (todayTime - new Date(p.entryDate).getTime()) / (1000 * 60 * 60 * 24),
-        ),
-      }))
-      .sort(
-        (a, b) =>
-          new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime(),
-      );
+    return positions.filter((p) => {
+      if (startDate && p.entryDate < startDate) return false;
+      if (endDate && p.entryDate > endDate) return false;
+      if (filterText) {
+        const lower = filterText.toLowerCase();
+        return (
+          p.name.toLowerCase().includes(lower) ||
+          p.code.toLowerCase().includes(lower)
+        );
+      }
+      return true;
+    });
   }, [positions, filterText, startDate, endDate]);
 
   if (filtered.length === 0) {
     return (
-      <div className="p-12 text-center text-slate-500">
-        保有中の銘柄はありません。
+      <div className="p-8 text-center text-slate-500">
+        該当する保有銘柄はありません。
       </div>
     );
   }
 
   return (
-    <Table>
-      <TableHeader className="bg-slate-50">
-        <TableRow>
-          <TableHead className="p-2 font-medium text-slate-600">銘柄</TableHead>
-          <TableHead className="p-2 font-medium text-slate-600">口座</TableHead>
-          <TableHead className="p-2 font-medium text-slate-600">
-            取得日
-          </TableHead>
-          <TableHead className="p-2 font-medium text-slate-600 text-right">
-            取得株数
-          </TableHead>
-          <TableHead className="p-2 font-medium text-slate-600 text-right">
-            取得単価
-          </TableHead>
-          <TableHead className="p-2 font-medium text-slate-600 text-right">
-            取得金額
-          </TableHead>
-          <TableHead className="p-2 font-medium text-slate-600 text-right">
-            保有期間
-          </TableHead>
-          <TableHead className="p-2 font-medium text-slate-600 text-right">
-            現在値
-          </TableHead>
-          <TableHead className="p-2 font-medium text-slate-600 text-right">
-            評価額
-          </TableHead>
-          <TableHead className="p-2 font-medium text-slate-600 text-right">
-            評価損益
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filtered.map((item) => {
-          const isValuationPositive = (item.valuationPL ?? 0) >= 0;
+    <div className="w-full">
+      {/* PC表示: テーブル */}
+      <div className="hidden md:block overflow-x-auto">
+        <Table className="min-w-max">
+          <TableHeader className="bg-slate-50">
+            <TableRow>
+              <TableHead className="whitespace-nowrap">銘柄</TableHead>
+              <TableHead className="whitespace-nowrap">口座</TableHead>
+              <TableHead className="whitespace-nowrap text-right">
+                数量
+              </TableHead>
+              <TableHead className="whitespace-nowrap text-right">
+                取得単価
+              </TableHead>
+              <TableHead className="whitespace-nowrap text-right">
+                現在値
+              </TableHead>
+              <TableHead className="whitespace-nowrap text-right">
+                評価額
+              </TableHead>
+              <TableHead className="whitespace-nowrap text-right">
+                評価損益
+              </TableHead>
+              <TableHead className="whitespace-nowrap">取得日</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((pos) => {
+              const marketValue = pos.currentPrice * pos.quantity;
+              const pl = pos.valuationPL ?? 0;
+              const plPercent =
+                pos.entryPrice * pos.quantity !== 0
+                  ? (pl / (pos.entryPrice * pos.quantity)) * 100
+                  : 0;
+              const isPositive = pl >= 0;
+
+              return (
+                <TableRow key={pos.id} className="hover:bg-slate-50">
+                  <TableCell>
+                    <Link
+                      href={`/stock?code=${pos.code}`}
+                      className="font-bold text-slate-800 hover:text-blue-600 block"
+                    >
+                      {pos.name}
+                    </Link>
+                    <span className="text-xs text-slate-500">{pos.code}</span>
+                  </TableCell>
+                  <TableCell>{pos.accountName}</TableCell>
+                  <TableCell className="text-right font-mono">
+                    {pos.quantity.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {pos.entryPrice.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {pos.currentPrice.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-mono">
+                    {marketValue.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div
+                      className={`font-bold ${isPositive ? "text-blue-600" : "text-red-600"}`}
+                    >
+                      {isPositive ? "+" : ""}
+                      {pl.toLocaleString()}
+                    </div>
+                    <div
+                      className={`text-xs ${isPositive ? "text-blue-600" : "text-red-600"}`}
+                    >
+                      ({isPositive ? "+" : ""}
+                      {plPercent.toFixed(2)}%)
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-slate-500 text-xs">
+                    {pos.entryDate}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* スマホ表示: カードリスト */}
+      <div className="md:hidden space-y-3">
+        {filtered.map((pos) => {
+          const marketValue = pos.currentPrice * pos.quantity;
+          const pl = pos.valuationPL ?? 0;
+          const plPercent =
+            pos.entryPrice * pos.quantity !== 0
+              ? (pl / (pos.entryPrice * pos.quantity)) * 100
+              : 0;
+          const isPositive = pl >= 0;
 
           return (
-            <TableRow
-              key={item.id}
-              className="hover:bg-slate-50 transition-colors"
+            <div
+              key={pos.id}
+              className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm"
             >
-              <TableCell className="p-2">
-                <Link href={`/stock?code=${item.code}`} className="block group">
-                  <div className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                    {item.name}
-                  </div>
-                  <div className="text-xs text-slate-500 group-hover:text-blue-500 transition-colors">
-                    {item.code}
-                  </div>
-                </Link>
-              </TableCell>
-              <TableCell className="p-2">
-                <span className="rounded text-xs font-medium bg-slate-100 text-slate-600">
-                  {item.accountName}
-                </span>
-              </TableCell>
-              <TableCell className="p-2 text-slate-600">
-                {item.entryDate}
-              </TableCell>
-              <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                {item.quantity.toLocaleString()}
-                {item.entryType === "STOCK_SPLIT" && (
-                  <span className="text-xs text-teal-600 ml-1">(分割)</span>
-                )}
-                {item.entryType === "STOCK_TRANSFER_IN" && (
-                  <span className="text-xs text-teal-600 ml-1">(入庫)</span>
-                )}
-                {item.entryType === "BUY" && (
-                  <span className="text-xs text-blue-600 ml-1">(購入)</span>
-                )}
-              </TableCell>
-              <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                ¥{item.entryPrice.toLocaleString()}
-              </TableCell>
-              <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                ¥{item.entryTotal.toLocaleString()}
-              </TableCell>
-              <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                {item.holdingPeriod}日
-              </TableCell>
-              <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                {item.currentPrice
-                  ? `¥${item.currentPrice.toLocaleString()}`
-                  : "-"}
-              </TableCell>
-              <TableCell className="p-2 text-right whitespace-nowrap font-mono">
-                {item.valuationTotal
-                  ? `¥${item.valuationTotal.toLocaleString()}`
-                  : "-"}
-              </TableCell>
-              <TableCell className="p-2 text-right whitespace-nowrap">
-                {item.valuationPL !== null ? (
-                  <span
-                    className={`font-bold ${
-                      isValuationPositive ? "text-green-600" : "text-red-600"
-                    }`}
+              <div className="flex justify-between items-start mb-2 pb-2 border-b border-slate-50">
+                <div>
+                  <Link
+                    href={`/stock?code=${pos.code}`}
+                    className="font-bold text-slate-800 text-sm block"
                   >
-                    {isValuationPositive ? "+" : ""}
-                    {item.valuationPL.toLocaleString()}
-                  </span>
-                ) : (
-                  "-"
-                )}
-              </TableCell>
-            </TableRow>
+                    {pos.name}
+                  </Link>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-slate-400">{pos.code}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
+                      {pos.accountName}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div
+                    className={`font-bold text-sm ${isPositive ? "text-blue-600" : "text-red-600"}`}
+                  >
+                    {isPositive ? "+" : ""}
+                    {pl.toLocaleString()}
+                  </div>
+                  <div
+                    className={`text-[10px] ${isPositive ? "text-blue-600" : "text-red-600"}`}
+                  >
+                    ({isPositive ? "+" : ""}
+                    {plPercent.toFixed(2)}%)
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">数量</span>
+                  <span>{pos.quantity.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">取得単価</span>
+                  <span>{pos.entryPrice.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">現在値</span>
+                  <span>{pos.currentPrice.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">評価額</span>
+                  <span>{marketValue.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between col-span-2 pt-1 mt-1 border-t border-slate-50">
+                  <span className="text-slate-400">取得日</span>
+                  <span>{pos.entryDate}</span>
+                </div>
+              </div>
+            </div>
           );
         })}
-      </TableBody>
-    </Table>
+      </div>
+    </div>
   );
 }

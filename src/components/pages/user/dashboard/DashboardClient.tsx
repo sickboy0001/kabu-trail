@@ -3,16 +3,17 @@
 import React, { useState } from "react";
 import DashboardSettingClient from "./setting/DashboardSettings";
 import { User } from "@supabase/supabase-js";
+import { PlaceholderWidget } from "./PlaceholderWidget";
 
 // --- 型定義 ---
-type WidgetSettings = {
+export type WidgetSettings = {
   period?: string;
   base_date_type?: string;
   bucket_id?: string | null;
   [key: string]: any;
 };
 
-type Widget = {
+export type Widget = {
   id: string;
   type: string;
   title: string;
@@ -34,13 +35,13 @@ const DEFAULT_PATTERN: DashboardPattern = {
   id: "pattern_standard",
   name: "標準レイアウト",
   is_default: true,
-  columns: 3,
+  columns: 6,
   widgets: [
     {
       id: "w1",
       type: "asset_summary",
       title: "資産情報",
-      cols: 1,
+      cols: 2,
       order: 1,
       settings: {},
     },
@@ -48,7 +49,7 @@ const DEFAULT_PATTERN: DashboardPattern = {
       id: "w2",
       type: "profit_loss_summary",
       title: "評価損益合計",
-      cols: 1,
+      cols: 2,
       order: 2,
       settings: {},
     },
@@ -56,7 +57,7 @@ const DEFAULT_PATTERN: DashboardPattern = {
       id: "w3",
       type: "day_over_day",
       title: "前日比",
-      cols: 1,
+      cols: 2,
       order: 3,
       settings: {},
     },
@@ -64,7 +65,7 @@ const DEFAULT_PATTERN: DashboardPattern = {
       id: "w4",
       type: "asset_history",
       title: "資産推移（1年）",
-      cols: 3,
+      cols: 4,
       order: 4,
       settings: { period: "1y" },
     },
@@ -80,7 +81,7 @@ const DEFAULT_PATTERN: DashboardPattern = {
       id: "w6",
       type: "stock_list",
       title: "保有銘柄一覧",
-      cols: 4,
+      cols: 6,
       order: 6,
       settings: {},
     },
@@ -114,18 +115,6 @@ const PATTERN_SIMPLE: DashboardPattern = {
 
 const INITIAL_PATTERNS = [DEFAULT_PATTERN, PATTERN_SIMPLE];
 
-// --- 仮のウィジェットコンポーネント ---
-const PlaceholderWidget = ({ widget }: { widget: Widget }) => (
-  <div className="h-full min-h-40 p-4 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
-    <h3 className="text-sm font-bold text-gray-500 mb-2 border-b pb-1">
-      {widget.title}
-    </h3>
-    <div className="grow flex items-center justify-center text-gray-400 italic">
-      {widget.type} (cols: {widget.cols})
-    </div>
-  </div>
-);
-
 type Props = {
   user: User;
 };
@@ -149,6 +138,7 @@ const DashboardClient = ({ user }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [isSettingMode, setIsSettingMode] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   const handleApplyJson = () => {
     try {
@@ -270,6 +260,12 @@ const DashboardClient = ({ user }: Props) => {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => setShowDebugInfo(!showDebugInfo)}
+            className={`px-4 py-2 border rounded shadow-sm transition-colors ${showDebugInfo ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white hover:bg-gray-50"}`}
+          >
+            🐞 デバッグ
+          </button>
+          <button
             onClick={() => setShowJsonEditor(!showJsonEditor)}
             className="px-4 py-2 bg-white border rounded shadow-sm hover:bg-gray-50"
           >
@@ -305,7 +301,10 @@ const DashboardClient = ({ user }: Props) => {
               }}
               className="w-full"
             >
-              <PlaceholderWidget widget={widget} />
+              <PlaceholderWidget
+                widget={widget}
+                showDebugInfo={showDebugInfo}
+              />
             </div>
           ))}
       </div>
