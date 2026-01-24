@@ -274,11 +274,13 @@ function HistoryView({
 
   const filteredTransactions = transactions.filter((t) => {
     const searchLower = searchTerm.toLowerCase();
+    const typeLabel = typeLabels[t.transaction_type as string] || "";
     return (
       t.stock_name?.toLowerCase().includes(searchLower) ||
       t.stock_code?.toLowerCase().includes(searchLower) ||
       t.memo?.toLowerCase().includes(searchLower) ||
-      t.account_name?.toLowerCase().includes(searchLower)
+      t.account_name?.toLowerCase().includes(searchLower) ||
+      typeLabel.includes(searchLower)
     );
   });
 

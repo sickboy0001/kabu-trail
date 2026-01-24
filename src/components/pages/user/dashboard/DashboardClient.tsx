@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import DashboardSettingClient from "./setting/DashboardSettings";
 import { User } from "@supabase/supabase-js";
 import { PlaceholderWidget } from "./PlaceholderWidget";
+import { useHoldingsData } from "@/hooks/useHoldingsData";
 
 // --- 型定義 ---
 export type WidgetSettings = {
@@ -71,7 +72,7 @@ const DEFAULT_PATTERN: DashboardPattern = {
     },
     {
       id: "w5",
-      type: "portfolio_pie",
+      type: "holdings_pie",
       title: "ポートフォリオ",
       cols: 2,
       order: 5,
@@ -79,7 +80,7 @@ const DEFAULT_PATTERN: DashboardPattern = {
     },
     {
       id: "w6",
-      type: "stock_list",
+      type: "holdings_list",
       title: "保有銘柄一覧",
       cols: 6,
       order: 6,
@@ -124,6 +125,9 @@ const DashboardClient = ({ user }: Props) => {
   // 実際には Supabase から取得するが、一旦定数を使用
   const [patterns, setPatterns] =
     useState<DashboardPattern[]>(INITIAL_PATTERNS);
+
+  // 保有銘柄データの取得
+  const { positions, closedTrades } = useHoldingsData(user.id);
 
   const initialPatternId =
     INITIAL_PATTERNS.find((p) => p.is_default)?.id || INITIAL_PATTERNS[0].id;
@@ -304,6 +308,8 @@ const DashboardClient = ({ user }: Props) => {
               <PlaceholderWidget
                 widget={widget}
                 showDebugInfo={showDebugInfo}
+                positions={positions}
+                closedTrades={closedTrades}
               />
             </div>
           ))}

@@ -14,7 +14,7 @@ https://github.com/sickboy0001/kabu-trail
 * account\_dashboard\_settings に固有の設定をもつ（supabaseへの保存想定）
 * DashboardClientでパターンを指定できること。パターンない場合はデフォルトで「※」の設定を持つものとする
 * dashboardは資産情報、評価損益合計、前日比、資産推移（１年間）、損益推移（１年間）、ポートフォリオ、保有銘柄一覧などをもつ
-* 資産情報　
+* 資産情報　AssetSummary
   * １列
   * 総資産：現状での現金と保有銘柄の金額の合計
   * 現金
@@ -34,10 +34,10 @@ https://github.com/sickboy0001/kabu-trail
   * ２列～６列
   * 指定期間内で月単位での０ベースの線グラフ
   * 月ごとのに資産がどう変わったか、クローズした株はクローズ日基準で利益出たかの記録
-* ポートフォリオ
+* ポートフォリオ HoldingsPie
   * ２列
   * 保有株の内訳、金額ベース、円グラフ
-* 保有銘柄一覧
+* 保有銘柄一覧 HoldingsList
   * ４列～６列
   * 銘柄、保有数、取得コスト、現在価格（前日比）、評価額、所持日数、評価損益
 
@@ -169,7 +169,7 @@ https://github.com/sickboy0001/kabu-trail
       },
       {
         "id": "widget_5",
-        "type": "portfolio_pie",
+        "type": "holdings_pie",
         "title": "ポートフォリオ",
         "cols": 2,
         "order": 5,
@@ -179,7 +179,7 @@ https://github.com/sickboy0001/kabu-trail
       },
       {
         "id": "widget_6",
-        "type": "stock_list",
+        "type": "holdings_list",
         "title": "保有銘柄一覧",
         "cols": 6,
         "order": 6,
@@ -208,7 +208,7 @@ https://github.com/sickboy0001/kabu-trail
       },
       {
         "id": "widget_8",
-        "type": "stock_list",
+        "type": "holdings_list",
         "title": "注目バケットA",
         "cols": 6,
         "order": 2,
@@ -317,7 +317,7 @@ bucket_id: 保有銘柄一覧などで特定のグループ（バケット）だ
       },
       {
         "id": "widget_6",
-        "type": "stock_list",
+        "type": "holdings_list",
         "title": "保有銘柄一覧",
         "cols": 6,
         "order": 6,
@@ -346,7 +346,7 @@ bucket_id: 保有銘柄一覧などで特定のグループ（バケット）だ
       },
       {
         "id": "widget_8",
-        "type": "stock_list",
+        "type": "holdings_list",
         "title": "注目バケットA",
         "cols": 6,
         "order": 2,
@@ -498,7 +498,7 @@ const WidgetRenderer = ({ type, data, settings }) => {
   switch (type) {
     case 'asset_summary': return <AssetSummary data={data} />;
     case 'asset_history': return <AssetHistoryChart data={data} settings={settings} />;
-    case 'stock_list':    return <StockTable data={data} bucketId={settings.bucket_id} />;
+    case 'holdings_list':    return <StockTable data={data} bucketId={settings.bucket_id} />;
     // ...以下続く
   }
 };
@@ -582,8 +582,8 @@ const DEFAULT_PATTERN: DashboardPattern = {
     { id: "w2", type: "profit_loss_summary", title: "評価損益合計", cols: 1, order: 2, settings: {} },
     { id: "w3", type: "day_over_day", title: "前日比", cols: 1, order: 3, settings: {} },
     { id: "w4", type: "asset_history", title: "資産推移（1年）", cols: 3, order: 4, settings: { period: "1y" } },
-    { id: "w5", type: "portfolio_pie", title: "ポートフォリオ", cols: 2, order: 5, settings: {} },
-    { id: "w6", type: "stock_list", title: "保有銘柄一覧", cols: 4, order: 6, settings: {} },
+    { id: "w5", type: "holdings_pie", title: "ポートフォリオ", cols: 2, order: 5, settings: {} },
+    { id: "w6", type: "holdings_list", title: "保有銘柄一覧", cols: 4, order: 6, settings: {} },
   ]
 };
 

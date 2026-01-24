@@ -200,14 +200,56 @@ export default function ImportTransactionsClient({
       // 4. データの登録
       // 現状一括登録APIがないため、ループで実行（件数が多い場合はAPI改善推奨）
       let successCount = 0;
+      let skippedCount = 0;
+
       for (const t of transactionsToInsert) {
-        await insertTransaction(t);
-        successCount++;
+        try {
+          await insertTransaction(t);
+          successCount++;
+        } catch (e: any) {
+          // 409 Conflict (一意制約違反) の場合はスキップして続行
+          if (
+            e?.status === 409 ||
+            e?.code === "23505" || // PostgreSQL unique_violation
+            JSON.stringify(e).includes("409")
+          ) {
+            skippedCount++;
+            console.warn("Skipped duplicate transaction:", t);
+          }
+          // 23503 Foreign Key Violation (銘柄コードがマスタにない) の場合
+          else if (e?.code === "23503") {
+            try {
+              // stock_code を null にして、メモにコードを追記して再試行
+              const retryT = {
+                ...t,
+                stock_code: null,
+                memo: t.memo
+                  ? `${t.memo} (上場廃止等 Code: ${t.stock_code})`
+                  : `(上場廃止等 Code: ${t.stock_code})`,
+              };
+              await insertTransaction(retryT);
+              successCount++;
+            } catch (retryError) {
+              console.error(
+                "Retry failed for unknown stock code:",
+                t,
+                retryError,
+              );
+              throw retryError;
+            }
+          } else {
+            // その他のエラーはスローして中断
+            throw e;
+          }
+        }
       }
 
-      toast.success(`${successCount}件のデータをインポートしました`, {
-        id: toastId,
-      });
+      const message =
+        skippedCount > 0
+          ? `${successCount}件インポートしました (${skippedCount}件スキップ)`
+          : `${successCount}件のデータをインポートしました`;
+
+      toast.success(message, { id: toastId });
       setStep("complete");
     } catch (error) {
       console.error("Import failed", error);
@@ -275,6 +317,7 @@ export default function ImportTransactionsClient({
           file={file}
           onBack={() => setStep("upload")}
           onImport={handleImport}
+          account={accounts.find((a) => String(a.id) === selectedAccountId)}
         />
       )}
 

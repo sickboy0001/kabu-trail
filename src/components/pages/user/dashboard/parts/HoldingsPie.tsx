@@ -8,20 +8,12 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Widget } from "../DashboardClient";
+import { Position } from "@/hooks/useHoldingsData";
 
 type Props = {
   widget: Widget;
+  positions?: Position[];
 };
-
-// ダミーデータ生成
-const generateDummyData = () => [
-  { name: "トヨタ自動車", value: 4500000 },
-  { name: "ソニーG", value: 3200000 },
-  { name: "三菱UFJ", value: 2800000 },
-  { name: "キーエンス", value: 2100000 },
-  { name: "任天堂", value: 1500000 },
-  { name: "その他", value: 3500000 },
-];
 
 const COLORS = [
   "#3b82f6", // blue-500
@@ -29,11 +21,53 @@ const COLORS = [
   "#f59e0b", // amber-500
   "#ef4444", // red-500
   "#8b5cf6", // violet-500
-  "#9ca3af", // gray-400
+  "#ec4899", // pink-500
+  "#06b6d4", // cyan-500
+  "#f97316", // orange-500
+  "#6366f1", // indigo-500
+  "#84cc16", // lime-500
+  "#14b8a6", // teal-500
+  "#eab308", // yellow-500
+  "#d946ef", // fuchsia-500
+  "#64748b", // slate-500
+  "#a855f7", // purple-500
+  "#0ea5e9", // sky-500
+  "#22c55e", // green-500
+  "#f43f5e", // rose-500
+  "#78716c", // stone-500
+  "#4b5563", // gray-600
 ];
 
-export function PortfolioPie({ widget }: Props) {
-  const data = useMemo(() => generateDummyData(), []);
+export function HoldingsPie({ widget, positions = [] }: Props) {
+  const data = useMemo(() => {
+    if (!positions || positions.length === 0) return [];
+
+    // 銘柄ごとに集計
+    const aggregated = positions.reduce(
+      (acc, pos) => {
+        const marketValue = pos.currentPrice * pos.quantity;
+        if (!acc[pos.name]) {
+          acc[pos.name] = 0;
+        }
+        acc[pos.name] += marketValue;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    // 配列に変換してソート
+    return Object.entries(aggregated)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [positions]);
+
+  if (data.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+        データなし
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full min-h-[250px] p-2">
@@ -57,9 +91,9 @@ export function PortfolioPie({ widget }: Props) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: any) => [
+            formatter={(value: any, name: any) => [
               `${Number(value).toLocaleString()}円`,
-              "評価額",
+              name,
             ]}
             contentStyle={{
               backgroundColor: "#1f2937",

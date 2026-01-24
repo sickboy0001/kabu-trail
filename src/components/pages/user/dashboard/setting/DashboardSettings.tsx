@@ -50,9 +50,9 @@ const WIDGET_TYPES = [
   { type: "profit_loss_summary", title: "評価損益合計" },
   { type: "day_over_day", title: "前日比" },
   { type: "asset_history", title: "資産推移" },
-  { type: "portfolio_pie", title: "ポートフォリオ" },
-  { type: "stock_list", title: "保有銘柄一覧" },
-];
+  { type: "holdings_pie", title: "ポートフォリオ" },
+  { type: "holdings_list", title: "保有銘柄一覧" },
+]; //stock_list
 
 export default function DashboardSettingClient({
   initialPatterns,

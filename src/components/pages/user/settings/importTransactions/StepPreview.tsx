@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import Papa from "papaparse";
 import { toast } from "sonner";
 import { AlertTriangle, CopyX, RefreshCw } from "lucide-react";
+import { type BrokerAccount } from "@/services/account";
 
 type Props = {
   file: File | null;
   onBack: () => void;
   onImport: (data: ParsedTransaction[], method: "overwrite" | "skip") => void;
+  account?: BrokerAccount;
 };
 
 export type ParsedTransaction = {
@@ -24,7 +26,12 @@ export type ParsedTransaction = {
   memo: string;
 };
 
-export default function StepPreview({ file, onBack, onImport }: Props) {
+export default function StepPreview({
+  file,
+  onBack,
+  onImport,
+  account,
+}: Props) {
   const [parsedData, setParsedData] = useState<ParsedTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [importMethod, setImportMethod] = useState<"overwrite" | "skip">(
@@ -38,16 +45,20 @@ export default function StepPreview({ file, onBack, onImport }: Props) {
     Papa.parse(file, {
       header: false, // ヘッダー位置を動的に探すためfalse
       skipEmptyLines: true,
+      encoding: "Shift-JIS",
       complete: (results) => {
         try {
           const rows = results.data as string[][];
 
           // ヘッダー行を探す
-          // "約定日" と "受渡日" が含まれている行をヘッダーとみなす
+          // "約定日" と "受渡日" が含まれている行をヘッダーとみなす (野村)
+          // "約定日時" と "銘柄コード" が含まれている行をヘッダーとみなす (GMO)
           const headerIndex = rows.findIndex(
             (row) =>
-              row.some((cell) => cell.includes("約定日")) &&
-              row.some((cell) => cell.includes("受渡日")),
+              (row.some((cell) => cell.includes("約定日")) &&
+                row.some((cell) => cell.includes("受渡日"))) ||
+              (row.some((cell) => cell.includes("約定日時")) &&
+                row.some((cell) => cell.includes("銘柄コード"))),
           );
 
           if (headerIndex === -1) {
@@ -61,34 +72,88 @@ export default function StepPreview({ file, onBack, onImport }: Props) {
           const getColIndex = (name: string) =>
             header.findIndex((h) => h.includes(name));
 
-          const colMap = {
-            date: getColIndex("約定日"),
-            name: getColIndex("銘柄名"),
-            code: getColIndex("銘柄コード"),
-            type: getColIndex("取引区分"),
-            depositType: getColIndex("預り区分"),
-            quantity: getColIndex("数量"),
-            unitPrice: getColIndex("単価"),
-            amount: getColIndex("受渡金額/決済損益"),
-            fee: getColIndex("手数料"), // "手数料（税込）"の部分一致
-            memo: getColIndex("摘要"),
-          };
+          // GMO判定
+          const isGmo = header.some((h) => h.includes("約定日時"));
+
+          let colMap;
+          if (isGmo) {
+            colMap = {
+              date: getColIndex("約定日時"),
+              name: getColIndex("銘柄名"),
+              code: getColIndex("銘柄コード"),
+              type: getColIndex("取引区分"),
+              side: getColIndex("売買区分"),
+              depositType: getColIndex("口座"),
+              quantity: getColIndex("約定数量"),
+              unitPrice: getColIndex("約定単価"),
+              amount: getColIndex("受渡金額（円貨）"),
+              fee: getColIndex("手数料"),
+              memo: getColIndex("備考"),
+            };
+          } else {
+            colMap = {
+              date: getColIndex("約定日"),
+              name: getColIndex("銘柄名"),
+              code: getColIndex("銘柄コード"),
+              type: getColIndex("取引区分"),
+              side: -1,
+              depositType: getColIndex("預り区分"),
+              quantity: getColIndex("数量"),
+              unitPrice: getColIndex("単価"),
+              amount: getColIndex("受渡金額/決済損益"),
+              fee: getColIndex("手数料"), // "手数料（税込）"の部分一致
+              memo: getColIndex("摘要"),
+            };
+          }
 
           const dataRows = rows.slice(headerIndex + 1);
           const transactions: ParsedTransaction[] = dataRows
-            .filter((row) => row.length > 1 && row[colMap.date]) // 空行などを除外
-            .map((row) => ({
-              date: row[colMap.date] || "",
-              type: row[colMap.type] || "",
-              depositType: row[colMap.depositType] || "",
-              name: row[colMap.name] || "",
-              code: row[colMap.code] || "",
-              quantity: row[colMap.quantity] || "",
-              unitPrice: row[colMap.unitPrice] || "",
-              amount: row[colMap.amount] || "",
-              fee: row[colMap.fee] || "",
-              memo: row[colMap.memo] || "",
-            }));
+            .filter((row) => {
+              if (row.length <= 1 || !row[colMap.date]) return false;
+
+              // 口座タグによるフィルタリング
+              const depositType = row[colMap.depositType] || "";
+              const isGeneralDeposit = depositType.includes("一般");
+              const isGeneralAccount =
+                (account as any)?.tags?.includes("一般") ||
+                account?.name?.includes("一般");
+
+              if (isGeneralAccount) {
+                if (!isGeneralDeposit) return false; // 一般口座なら一般預かり以外を除外
+              } else {
+                if (isGeneralDeposit) return false; // 通常口座なら一般預かりを除外
+              }
+
+              return true;
+            })
+            .map((row) => {
+              let type = row[colMap.type] || "";
+
+              // GMO固有の処理
+              if (isGmo) {
+                const side = colMap.side > -1 ? row[colMap.side] : "";
+                if (side) {
+                  type = type + side; // "現物" + "買" -> "現物買"
+                }
+                // "譲渡益税徴収金" を "税金" として扱う
+                if (type.includes("譲渡益税徴収金")) {
+                  type = "税金";
+                }
+              }
+
+              return {
+                date: row[colMap.date] || "",
+                type: type,
+                depositType: row[colMap.depositType] || "",
+                name: row[colMap.name] || "",
+                code: row[colMap.code] || "",
+                quantity: row[colMap.quantity] || "",
+                unitPrice: row[colMap.unitPrice] || "",
+                amount: row[colMap.amount] || "",
+                fee: row[colMap.fee] || "",
+                memo: row[colMap.memo] || "",
+              };
+            });
 
           setParsedData(transactions);
         } catch (error) {
@@ -237,7 +302,7 @@ export default function StepPreview({ file, onBack, onImport }: Props) {
                   期間内のデータを置き換え（洗い替え）
                 </div>
                 <p className="text-sm text-slate-500 mt-1">
-                  CSVに含まれる期間（開始日〜終了日）の既存データをすべて削除してから、
+                  選択した口座の、CSVに含まれる期間（開始日〜終了日）の既存データをすべて削除してから、
                   今回のデータを登録します。重複して登録されてしまった場合の修正に便利です。
                 </p>
                 {importMethod === "overwrite" && (

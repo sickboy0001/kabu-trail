@@ -7,15 +7,21 @@ import { AssetSummary } from "./parts/AssetSummary";
 import { ProfitLossSummary } from "./parts/ProfitLossSummary";
 import { DayOverDay } from "./parts/DayOverDay";
 import { AssetHistory } from "./parts/AssetHistory";
-import { PortfolioPie } from "./parts/PortfolioPie";
-import { StockList } from "./parts/StockList";
+import { HoldingsPie } from "./parts/HoldingsPie";
+import { HoldingsList } from "./parts/HoldingsList";
+
+import { Position, ClosedTrade } from "@/hooks/useHoldingsData";
 
 export const PlaceholderWidget = ({
   widget,
   showDebugInfo,
+  positions,
+  closedTrades,
 }: {
   widget: Widget;
   showDebugInfo?: boolean;
+  positions?: Position[];
+  closedTrades?: ClosedTrade[];
 }) => {
   // 共通のウィジェットラッパー（タイトルと枠）
   const WidgetWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -38,22 +44,34 @@ export const PlaceholderWidget = ({
   const renderWidgetContent = () => {
     switch (widget.type) {
       case "asset_summary":
-        return <AssetSummary widget={widget} />;
+        return (
+          <AssetSummary
+            widget={widget}
+            positions={positions}
+            closedTrades={closedTrades}
+          />
+        );
 
       case "profit_loss_summary":
-        return <ProfitLossSummary widget={widget} />;
+        return (
+          <ProfitLossSummary
+            widget={widget}
+            positions={positions}
+            closedTrades={closedTrades}
+          />
+        );
 
       case "day_over_day":
         return <DayOverDay widget={widget} />;
 
       case "asset_history":
         return <AssetHistory widget={widget} />;
+      //portfolio_pie
+      case "holdings_pie":
+        return <HoldingsPie widget={widget} positions={positions} />;
 
-      case "portfolio_pie":
-        return <PortfolioPie widget={widget} />;
-
-      case "stock_list":
-        return <StockList widget={widget} />;
+      case "holdings_list":
+        return <HoldingsList widget={widget} positions={positions} />;
 
       default:
         return (

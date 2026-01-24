@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import { BrokerAccount } from "@/services/account";
 import {
   Upload,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { NomuraCsvGuide } from "./NomuraCsvGuide";
+import { GmoCsvGuide } from "./GmoCsvGuide";
 
 type Props = {
   accounts: BrokerAccount[];
@@ -82,6 +83,15 @@ export default function StepUpload({
     }
     onNext();
   };
+
+  const guideInfo = useMemo(() => {
+    const brokerName = selectedAccount?.brokerName || "";
+    const accountName = selectedAccount?.name || "";
+    if (brokerName.includes("GMO") || accountName.includes("GMO")) {
+      return { name: "GMOクリック証券", Component: GmoCsvGuide };
+    }
+    return { name: "野村證券", Component: NomuraCsvGuide };
+  }, [selectedAccount]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -202,9 +212,9 @@ export default function StepUpload({
             <HelpCircle size={16} />
             {showGuide
               ? "CSV入手方法を閉じる"
-              : "野村證券のCSV入手方法を確認する"}
+              : `${guideInfo.name}のCSV入手方法を確認する`}
           </button>
-          {showGuide && <NomuraCsvGuide />}
+          {showGuide && <guideInfo.Component />}
         </div>
       </div>
 

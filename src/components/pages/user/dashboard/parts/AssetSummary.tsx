@@ -1,42 +1,61 @@
 import React from "react";
 import { Widget } from "../DashboardClient";
+import { Position, ClosedTrade } from "@/hooks/useHoldingsData";
 
 type Props = {
   widget: Widget;
+  positions?: Position[];
+  closedTrades?: ClosedTrade[];
 };
 
-// ダミーデータ
-const ASSET_DATA = {
-  cash: 5240000,
-  stockValue: 14500000,
-};
+export function AssetSummary({
+  widget,
+  positions = [],
+  closedTrades = [],
+}: Props) {
+  // 評価額の計算
+  const totalInvestment = positions.reduce(
+    (sum, p) => sum + p.entryPrice * p.quantity,
+    0,
+  );
+  const currentMarketValue = positions.reduce(
+    (sum, p) => sum + p.currentPrice * p.quantity,
+    0,
+  );
+  const totalUnrealizedPL = currentMarketValue - totalInvestment;
 
-export function AssetSummary({ widget }: Props) {
-  const totalAssets = ASSET_DATA.cash + ASSET_DATA.stockValue;
+  // 損益率
+  const plPercent =
+    totalInvestment !== 0 ? (totalUnrealizedPL / totalInvestment) * 100 : 0;
+
+  const isPositive = totalUnrealizedPL >= 0;
 
   return (
-    <div className="flex flex-col gap-4 p-2 h-full justify-center">
-      {/* 総資産 */}
-      <div>
-        <div className="text-sm text-gray-500 mb-1">総資産</div>
-        <div className="text-3xl font-bold text-gray-800 tracking-tight">
-          {totalAssets.toLocaleString()}
-          <span className="text-sm font-normal text-gray-500 ml-1">円</span>
+    <div className="flex flex-col items-center justify-center h-full space-y-2">
+      <div className="text-center">
+        <div className="text-xs text-gray-500 mb-1">株式評価額</div>
+        <div className="text-2xl font-bold text-gray-800">
+          ¥{currentMarketValue.toLocaleString()}
         </div>
       </div>
 
-      {/* 内訳 */}
-      <div className="flex flex-col gap-3 border-t border-gray-100 pt-4">
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">保有銘柄</div>
-          <div className="font-medium text-gray-800">
-            {ASSET_DATA.stockValue.toLocaleString()} 円
+      <div className="flex items-center gap-4 text-sm">
+        <div className="text-center">
+          <div className="text-xs text-gray-500">評価損益</div>
+          <div
+            className={`font-bold ${isPositive ? "text-red-500" : "text-blue-500"}`}
+          >
+            {isPositive ? "+" : ""}
+            {totalUnrealizedPL.toLocaleString()}
           </div>
         </div>
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">現金</div>
-          <div className="font-medium text-gray-800">
-            {ASSET_DATA.cash.toLocaleString()} 円
+        <div className="text-center">
+          <div className="text-xs text-gray-500">損益率</div>
+          <div
+            className={`font-bold ${isPositive ? "text-red-500" : "text-blue-500"}`}
+          >
+            {isPositive ? "+" : ""}
+            {plPercent.toFixed(2)}%
           </div>
         </div>
       </div>
