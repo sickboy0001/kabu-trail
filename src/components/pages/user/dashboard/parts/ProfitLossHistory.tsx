@@ -133,7 +133,9 @@ export function ProfitLossHistory({ widget, closedTrades = [] }: Props) {
   return (
     <div className="w-full h-full min-h-50 flex flex-col">
       <div className="flex items-center gap-4 mb-2 border-b border-gray-100 pb-1">
-        <h3 className="text-sm font-bold text-gray-500">{widget.title}</h3>
+        <h3 className="text-xs sm:text-sm font-bold text-gray-500">
+          {widget.title}
+        </h3>
         <div className="flex items-center gap-1">
           <button
             type="button"

@@ -2,11 +2,23 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { User } from "@supabase/supabase-js";
-import { Search } from "lucide-react";
+import { Search, Info } from "lucide-react";
 import { useTransactionData } from "@/hooks/useTransactionData";
 import { fetchBrokerAccounts, type BrokerAccount } from "@/services/account";
 import AccountFilter from "@/components/Organisms/AccountFilter";
 import { AssetHistoryList } from "./AssetHistoryList";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { MarkdownTooltip } from "@/components/ui/MarkdownTooltip";
+import {
+  VALUATION_TOOLTIP_MD,
+  PL_TOOLTIP_MD,
+  PL_PERCENT_TOOLTIP_MD,
+} from "@/constants/content";
 
 type Props = {
   user: User;
@@ -14,6 +26,7 @@ type Props = {
 
 export default function AssetHistoryClient({ user }: Props) {
   const { transactions } = useTransactionData(user.id);
+
   console.log("AssetHistoryClient transactions:", transactions);
 
   const [brokerAccounts, setBrokerAccounts] = useState<BrokerAccount[]>([]);
@@ -195,6 +208,77 @@ export default function AssetHistoryClient({ user }: Props) {
     <div className="space-y-6 w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-800">資産推移</h1>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <TooltipProvider>
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-medium text-slate-500">
+                株式評価額
+              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info
+                    size={14}
+                    className="text-slate-400 cursor-pointer hover:text-slate-600"
+                  />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm p-4">
+                  <MarkdownTooltip
+                    content={VALUATION_TOOLTIP_MD}
+                    className="text-sm"
+                  />
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="text-2xl font-bold text-slate-800">-</div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-medium text-slate-500">
+                評価損益
+              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info
+                    size={14}
+                    className="text-slate-400 cursor-pointer hover:text-slate-600"
+                  />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm p-4">
+                  <MarkdownTooltip
+                    content={PL_TOOLTIP_MD}
+                    className="text-sm"
+                  />
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="text-2xl font-bold text-slate-800">-</div>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-medium text-slate-500">損益率</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info
+                    size={14}
+                    className="text-slate-400 cursor-pointer hover:text-slate-600"
+                  />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm p-4">
+                  <MarkdownTooltip
+                    content={PL_PERCENT_TOOLTIP_MD}
+                    className="text-sm"
+                  />
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="text-2xl font-bold text-slate-800">-</div>
+          </div>
+        </TooltipProvider>
       </div>
 
       {/* フィルタエリア */}

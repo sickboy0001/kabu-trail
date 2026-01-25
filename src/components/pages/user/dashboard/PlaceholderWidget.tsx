@@ -30,7 +30,7 @@ export const PlaceholderWidget = ({
 }) => {
   // 共通のウィジェットラッパー（タイトルと枠）
   const WidgetWrapper = ({ children }: { children: React.ReactNode }) => (
-    <div className="h-full min-h-40 p-4 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
+    <div className="h-full min-h-32 p-3 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
       <div className="grow flex flex-col h-full overflow-hidden">
         {children}
       </div>
@@ -66,7 +66,7 @@ export const PlaceholderWidget = ({
         );
 
       case "day_over_day":
-        return <DayOverDay widget={widget} />;
+        return <DayOverDay widget={widget} positions={positions} />;
 
       case "asset_history":
         return <AssetHistory widget={widget} transactions={transactions} />;

@@ -8,6 +8,9 @@ import { ProfitLossHistorySkeleton } from "./parts/ProfitLossHistorySettings";
 import { HoldingsPieSkeleton } from "./parts/HoldingsPieSettings";
 import { HoldingsListSkeleton } from "./parts/HoldingsListSettings";
 import { TreeMapSkeleton } from "./parts/HoldingsTreeMapSettings";
+import { AssetSummarySkeleton } from "./parts/AssetSummarySettings";
+import { ProfitLossSummarySkeleton } from "./parts/ProfitLossSummarySettings";
+import { DayOverDaySkeleton } from "./parts/DayOverDaySettings";
 
 type Widget = {
   id: string;
@@ -50,6 +53,12 @@ export function SortableWidgetCard({
 
   const renderPreview = () => {
     switch (widget.type) {
+      case "asset_summary":
+        return <AssetSummarySkeleton />;
+      case "profit_loss_summary":
+        return <ProfitLossSummarySkeleton />;
+      case "day_over_day":
+        return <DayOverDaySkeleton />;
       case "asset_history":
         return <AssetHistorySkeleton />;
       case "profit_loss_history":

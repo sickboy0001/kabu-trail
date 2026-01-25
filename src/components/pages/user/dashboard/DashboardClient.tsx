@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import DashboardSettingClient from "./setting/DashboardSettings";
 import { User } from "@supabase/supabase-js";
 import { PlaceholderWidget } from "./PlaceholderWidget";
@@ -9,6 +10,7 @@ import { useTransactionData } from "@/hooks/useTransactionData";
 import { getDashboardSettings } from "@/app/actions/user/dashboardsetting";
 import Toast from "@/components/ui/Toast";
 import { DEFAULT_PATTERN } from "./defaultPattern";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 // --- 型定義 ---
 export type WidgetSettings = {
@@ -47,6 +49,7 @@ type Props = {
 // --- メインコンポーネント ---
 const DashboardClient = ({ user }: Props) => {
   // 実際には Supabase から取得するが、一旦定数を使用
+  const router = useRouter();
   const [patterns, setPatterns] =
     useState<DashboardPattern[]>(INITIAL_PATTERNS);
 
@@ -85,6 +88,9 @@ const DashboardClient = ({ user }: Props) => {
 
   // 資産推移データの取得
   const { transactions } = useTransactionData(user.id);
+
+  // 管理者判定
+  const { isAdmin } = useAdminCheck();
 
   const initialPatternId =
     INITIAL_PATTERNS.find((p) => p.is_default)?.id || INITIAL_PATTERNS[0].id;
@@ -141,6 +147,11 @@ const DashboardClient = ({ user }: Props) => {
     setCurrentPatternId(e.target.value);
   };
 
+  const handleRefresh = () => {
+    router.refresh();
+    showToast("データを更新しました", "success");
+  };
+
   // 列数に応じたクラス名を決定するヘルパー
   const getGridClass = (cols: number) => {
     switch (cols) {
@@ -157,6 +168,35 @@ const DashboardClient = ({ user }: Props) => {
       default:
         return "md:grid-cols-6";
     }
+  };
+
+  // ウィジェットのcol-spanクラスを決定するヘルパー
+  const getWidgetSpanClass = (cols: number) => {
+    // Mobile:
+    // PC設定が 1 or 2 (1/6, 2/6) の場合は 1/3幅 (col-span-1)
+    // PC設定が 3以上 (3/6 ~ 6/6) の場合は 全幅 (col-span-3) として空きスペースを埋める
+    const mobileCols = cols <= 2 ? 1 : 3;
+
+    // Tailwind JITがクラスを検出できるように完全な文字列で定義
+    const mobileClasses: Record<number, string> = {
+      1: "col-span-1",
+      2: "col-span-2",
+      3: "col-span-3",
+    };
+
+    const mdClasses: Record<number, string> = {
+      1: "md:col-span-1",
+      2: "md:col-span-2",
+      3: "md:col-span-3",
+      4: "md:col-span-4",
+      5: "md:col-span-5",
+      6: "md:col-span-6",
+    };
+
+    const mobileClass = mobileClasses[mobileCols] || "col-span-3";
+    const mdClass = mdClasses[cols] || "md:col-span-6";
+
+    return `${mobileClass} ${mdClass}`;
   };
 
   // 設定画面からの保存処理
@@ -176,9 +216,9 @@ const DashboardClient = ({ user }: Props) => {
   };
 
   const mainContent = (
-    <div className="bg-gray-50 min-h-screen p-6">
+    <div className="bg-gray-50 min-h-screen p-4">
       {/* JSON編集エリア */}
-      {showJsonEditor && (
+      {isAdmin && showJsonEditor && (
         <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
           <label className="block text-sm font-bold text-gray-700 mb-2">
             レイアウトJSON編集
@@ -201,7 +241,7 @@ const DashboardClient = ({ user }: Props) => {
       )}
 
       {/* ヘッダーエリア */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 md:gap-0">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 md:gap-0">
         <div>
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold text-gray-800">
@@ -224,19 +264,26 @@ const DashboardClient = ({ user }: Props) => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => setShowDebugInfo(!showDebugInfo)}
+                className={`px-4 py-2 border rounded shadow-sm transition-colors ${showDebugInfo ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white hover:bg-gray-50"}`}
+              >
+                🐞 デバッグ
+              </button>
+              <button
+                onClick={() => setShowJsonEditor(!showJsonEditor)}
+                className="px-4 py-2 bg-white border rounded shadow-sm hover:bg-gray-50"
+              >
+                📝 JSON編集
+              </button>
+            </>
+          )}
           <button
-            onClick={() => setShowDebugInfo(!showDebugInfo)}
-            className={`px-4 py-2 border rounded shadow-sm transition-colors ${showDebugInfo ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white hover:bg-gray-50"}`}
-          >
-            🐞 デバッグ
-          </button>
-          <button
-            onClick={() => setShowJsonEditor(!showJsonEditor)}
+            onClick={handleRefresh}
             className="px-4 py-2 bg-white border rounded shadow-sm hover:bg-gray-50"
           >
-            📝 JSON編集
-          </button>
-          <button className="px-4 py-2 bg-white border rounded shadow-sm hover:bg-gray-50">
             🔄 更新
           </button>
           <button
@@ -253,18 +300,14 @@ const DashboardClient = ({ user }: Props) => {
           gap-4 でウィジェット間の隙間を確保。
       */}
       <div
-        className={`grid grid-cols-1 gap-4 ${getGridClass(currentPattern.columns || 6)}`}
+        className={`grid grid-cols-3 gap-2 md:gap-4 ${getGridClass(currentPattern.columns || 6)}`}
       >
         {currentPattern.widgets
           .sort((a, b) => a.order - b.order)
           .map((widget) => (
             <div
               key={widget.id}
-              style={{
-                // Tailwindの動的な col-span はパージされる可能性があるため、style or 固定クラスを使用
-                gridColumn: `span ${widget.cols} / span ${widget.cols}`,
-              }}
-              className="w-full"
+              className={`w-full ${getWidgetSpanClass(widget.cols)}`}
             >
               <PlaceholderWidget
                 widget={widget}

@@ -153,7 +153,7 @@ export function HoldingsTreeMap({ widget, positions = [] }: Props) {
     <div
       className={`w-full h-full flex flex-col ${getHeightClass(widget.settings.height)}`}
     >
-      <h3 className="text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
+      <h3 className="text-xs sm:text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
         {widget.title}
       </h3>
       <div className="flex-1 min-h-0">

@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 const menuItems = [
   { name: "ダッシュボード", href: "/dashboard", icon: LayoutDashboard },
@@ -54,24 +55,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     router.refresh();
   };
 
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetch("/api/is-admin");
-        const json = await res.json();
-        console.log("mounted", mounted);
-        if (mounted) setIsAdmin(Boolean(json?.isAdmin));
-      } catch (err) {
-        console.error("Failed to check admin status", err);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { isAdmin } = useAdminCheck();
 
   // モバイル表示時にメニューをクリックしたらサイドバーを閉じる
   const handleMenuClick = () => {

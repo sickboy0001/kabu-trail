@@ -6,12 +6,13 @@ import { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 export default function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { isAdmin } = useAdminCheck();
 
   const supabase = createClient();
 
@@ -27,19 +28,8 @@ export default function Navbar() {
         if (mounted) {
           if (session?.user) {
             setUser(session.user);
-            // 管理者チェック
-            try {
-              const res = await fetch("/api/is-admin");
-              if (res.ok) {
-                const json = await res.json();
-                if (mounted) setIsAdmin(Boolean(json?.isAdmin));
-              }
-            } catch (e) {
-              console.error("Admin check failed", e);
-            }
           } else {
             setUser(null);
-            setIsAdmin(false);
           }
         }
       } catch (error) {
@@ -56,7 +46,6 @@ export default function Navbar() {
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         setUser(null);
-        setIsAdmin(false);
       } else if (session?.user) {
         setUser(session.user);
       }

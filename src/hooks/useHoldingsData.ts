@@ -17,6 +17,7 @@ export type Position = {
   entryDate: string;
   entryPrice: number;
   currentPrice: number;
+  previousClose?: number;
   valuationPL?: number;
   entryType?: string;
 };
@@ -42,7 +43,9 @@ export const useHoldingsData = (userId: string | undefined) => {
     [],
   );
   const [accounts, setAccounts] = useState<BrokerAccount[]>([]);
-  const [prices, setPrices] = useState<Record<string, number>>({});
+  const [prices, setPrices] = useState<
+    Record<string, { current: number; previous?: number }>
+  >({});
 
   const refresh = useCallback(async () => {
     if (!userId) return;
@@ -340,10 +343,27 @@ export const useHoldingsData = (userId: string | undefined) => {
     const loadPrices = async () => {
       try {
         const details = await fetchMultipleStockDetails(codes);
-        const newPrices: Record<string, number> = {};
+        const newPrices: Record<
+          string,
+          { current: number; previous?: number }
+        > = {};
         Object.entries(details).forEach(([code, d]) => {
-          if (d && d.current_price) {
-            newPrices[code] = d.current_price;
+          if (d) {
+            // デバッグ用: 最初の1件のデータ構造をログ出力（APIレスポンス確認用）
+            if (Object.keys(newPrices).length === 0) {
+              console.log(
+                `[useHoldingsData] API Response Sample for ${code}:`,
+                d,
+              );
+            }
+            newPrices[code] = {
+              current: d.current_price,
+              // プロパティ名の揺らぎに対応 (snake_case, camelCase, PascalCase)
+              previous:
+                d.previous_close ??
+                (d as any).previousClose ??
+                (d as any).PreviousClose,
+            };
           }
         });
         setPrices(newPrices);
@@ -357,7 +377,9 @@ export const useHoldingsData = (userId: string | undefined) => {
 
   const positions = useMemo(() => {
     return basePositions.map((p) => {
-      const currentPrice = prices[p.code] ?? p.entryPrice;
+      const priceData = prices[p.code];
+      const currentPrice = priceData?.current ?? p.entryPrice;
+      const previousClose = priceData?.previous;
       const isShort = p.entryType === "CREDIT_OPEN";
       const plPerShare = isShort
         ? p.entryPrice - currentPrice
@@ -365,6 +387,7 @@ export const useHoldingsData = (userId: string | undefined) => {
       return {
         ...p,
         currentPrice,
+        previousClose,
         valuationPL: plPerShare * p.quantity,
       };
     });

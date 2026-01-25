@@ -73,7 +73,7 @@ export function HoldingsPie({ widget, positions = [] }: Props) {
   if (data.length === 0) {
     return (
       <div className="w-full h-full flex flex-col">
-        <h3 className="text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
+        <h3 className="text-xs sm:text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
           {widget.title}
         </h3>
         <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
@@ -85,7 +85,7 @@ export function HoldingsPie({ widget, positions = [] }: Props) {
 
   return (
     <div className="w-full h-full min-h-[250px] flex flex-col">
-      <h3 className="text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
+      <h3 className="text-xs sm:text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
         {widget.title}
       </h3>
       <div className="flex-1 min-h-0">

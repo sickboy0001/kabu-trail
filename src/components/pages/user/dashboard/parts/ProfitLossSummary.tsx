@@ -46,38 +46,41 @@ export function ProfitLossSummary({
 
   return (
     <div className="flex flex-col h-full">
-      <h3 className="text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
+      <h3 className="text-xs sm:text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
         {widget.title}
       </h3>
-      <div className="flex flex-col justify-center flex-1 space-y-3 px-2">
-        <div className="flex justify-between items-end border-b border-gray-100 pb-2">
-          <span className="text-sm text-gray-500">評価損益 (含み)</span>
-          <span
-            className={`font-bold ${totalUnrealizedPL >= 0 ? "text-red-500" : "text-blue-500"}`}
-          >
-            {totalUnrealizedPL >= 0 ? "+" : ""}
-            {totalUnrealizedPL.toLocaleString()}
-          </span>
-        </div>
-
-        <div className="flex justify-between items-end border-b border-gray-100 pb-2">
-          <span className="text-sm text-gray-500">実現損益 (確定)</span>
-          <span
-            className={`font-bold ${totalRealizedPL >= 0 ? "text-red-500" : "text-blue-500"}`}
-          >
-            {totalRealizedPL >= 0 ? "+" : ""}
-            {totalRealizedPL.toLocaleString()}
-          </span>
-        </div>
-
-        <div className="flex justify-between items-end pt-1">
-          <span className="text-sm font-bold text-gray-700">合計損益</span>
-          <span
-            className={`text-lg font-bold ${isPositive ? "text-red-500" : "text-blue-500"}`}
+      <div className="flex flex-col justify-center flex-1 gap-1 px-2">
+        {/* メイン: 合計損益 */}
+        <div>
+          <div className="text-xs text-gray-500 mb-1">合計損益</div>
+          <div
+            className={`text-2xl font-bold tracking-tight ${isPositive ? "text-red-500" : "text-blue-500"}`}
           >
             {isPositive ? "+" : ""}
             {totalPL.toLocaleString()}
-          </span>
+          </div>
+        </div>
+
+        {/* サブ: 詳細リスト */}
+        <div className="flex flex-col gap-1 border-t border-gray-100 pt-1">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center text-sm">
+            <span className="text-gray-500">評価損益 (含み)</span>
+            <span
+              className={`font-bold self-end sm:self-auto ${totalUnrealizedPL >= 0 ? "text-red-500" : "text-blue-500"}`}
+            >
+              {totalUnrealizedPL >= 0 ? "+" : ""}
+              {totalUnrealizedPL.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center text-sm">
+            <span className="text-gray-500">実現損益 (確定)</span>
+            <span
+              className={`font-bold self-end sm:self-auto ${totalRealizedPL >= 0 ? "text-red-500" : "text-blue-500"}`}
+            >
+              {totalRealizedPL >= 0 ? "+" : ""}
+              {totalRealizedPL.toLocaleString()}
+            </span>
+          </div>
         </div>
       </div>
     </div>

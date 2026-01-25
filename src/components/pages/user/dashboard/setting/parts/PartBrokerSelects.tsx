@@ -11,6 +11,11 @@ export const PartBrokerSelects = ({
   onChange,
   accountOptions,
 }: Props) => {
+  // 名前がない、もしくは名前がIDとなっている口座（＝有効な名前がない）は除外する
+  const visibleOptions = accountOptions.filter(
+    (account) => account.name && account.name !== account.id,
+  );
+
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-start gap-2">
@@ -18,12 +23,12 @@ export const PartBrokerSelects = ({
           表示対象の口座
         </label>
         <div className="flex flex-wrap gap-2 flex-1">
-          {accountOptions.length === 0 ? (
+          {visibleOptions.length === 0 ? (
             <div className="text-sm text-gray-400 py-1">
               選択可能な口座が見つかりません
             </div>
           ) : (
-            accountOptions.map((account) => {
+            visibleOptions.map((account) => {
               const isChecked = targetBuckets.includes(account.id);
               return (
                 <label

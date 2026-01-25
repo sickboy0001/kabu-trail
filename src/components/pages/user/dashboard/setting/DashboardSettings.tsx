@@ -26,6 +26,9 @@ import { HoldingsListSettings } from "./parts/HoldingsListSettings";
 import { HoldingsPieSettings } from "./parts/HoldingsPieSettings";
 import { HoldingsTreeMapSettings } from "./parts/HoldingsTreeMapSettings";
 import { ProfitLossHistorySettings } from "./parts/ProfitLossHistorySettings";
+import { AssetSummarySettings } from "./parts/AssetSummarySettings";
+import { ProfitLossSummarySettings } from "./parts/ProfitLossSummarySettings";
+import { DayOverDaySettings } from "./parts/DayOverDaySettings";
 
 type Widget = {
   id: string;
@@ -408,8 +411,32 @@ export default function DashboardSettingClient({
                   widget.type === "holdings_pie" ||
                   widget.type === "holdings_list" ||
                   widget.type === "holdings_tree_map" ||
-                  widget.type === "tree_map") && (
+                  widget.type === "tree_map" ||
+                  widget.type === "asset_summary" ||
+                  widget.type === "profit_loss_summary" ||
+                  widget.type === "day_over_day") && (
                   <div>
+                    {widget.type === "asset_summary" && (
+                      <AssetSummarySettings
+                        settings={widget.settings}
+                        onUpdate={(s) => updateWidgetSettings(widget.id, s)}
+                        accountOptions={accountOptions}
+                      />
+                    )}
+                    {widget.type === "profit_loss_summary" && (
+                      <ProfitLossSummarySettings
+                        settings={widget.settings}
+                        onUpdate={(s) => updateWidgetSettings(widget.id, s)}
+                        accountOptions={accountOptions}
+                      />
+                    )}
+                    {widget.type === "day_over_day" && (
+                      <DayOverDaySettings
+                        settings={widget.settings}
+                        onUpdate={(s) => updateWidgetSettings(widget.id, s)}
+                        accountOptions={accountOptions}
+                      />
+                    )}
                     {widget.type === "asset_history" && (
                       <AssetHistorySettings
                         settings={widget.settings}
