@@ -357,7 +357,7 @@ export const useHoldingsData = (userId: string | undefined) => {
               );
             }
             newPrices[code] = {
-              current: d.current_price,
+              current: d.current_price ?? 0,
               // プロパティ名の揺らぎに対応 (snake_case, camelCase, PascalCase)
               previous:
                 (d as any).prev_close ??

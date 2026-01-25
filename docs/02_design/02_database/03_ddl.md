@@ -5,6 +5,7 @@
 - [DDL](#ddl)
   - [1. 共通設定 (Common Setup)](#1-共通設定-common-setup)
   - [2. 株価・銘柄 (Stocks \& Quotes)](#2-株価銘柄-stocks--quotes)
+    - [market\_calendar](#market_calendar)
     - [spt\_daily\_quotes](#spt_daily_quotes)
   - [3. バスケット (Baskets)](#3-バスケット-baskets)
     - [stock\_baskets](#stock_baskets)
@@ -43,6 +44,21 @@ $$ language plpgsql;
 ```
 
 ## 2. 株価・銘柄 (Stocks & Quotes)
+
+### market_calendar
+
+```sql
+CREATE TABLE market_calendar (
+    date DATE PRIMARY KEY,
+    is_open BOOLEAN DEFAULT TRUE,
+    note TEXT
+);
+
+-- RLS無効化と権限付与
+ALTER TABLE market_calendar DISABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE market_calendar TO authenticated;
+GRANT SELECT,UPDATE,INSERT,DELETE ON TABLE market_calendar TO anon;
+```
 
 ### spt_daily_quotes
 
