@@ -112,7 +112,7 @@ export default function DashboardSettingClient({
 
     return Array.from(map.entries())
       .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.id.localeCompare(b.id));
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
   }, [transactions, positions]);
 
   // アクティブなパターンを更新するヘルパー関数

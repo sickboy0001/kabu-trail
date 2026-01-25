@@ -35,7 +35,10 @@ export type DashboardPattern = {
   widgets: Widget[];
 };
 
-const INITIAL_PATTERNS = [DEFAULT_PATTERN];
+const INITIAL_PATTERNS = [DEFAULT_PATTERN].map((p) => ({
+  ...p,
+  id: String(p.id),
+}));
 
 type Props = {
   user: User;
@@ -58,12 +61,16 @@ const DashboardClient = ({ user }: Props) => {
           Array.isArray(settings.patterns) &&
           settings.patterns.length > 0
         ) {
-          const loadedPatterns = settings.patterns as DashboardPattern[];
+          // IDが数値で返ってくる場合があるため、文字列に変換して安全にする
+          const loadedPatterns = settings.patterns.map((p: any) => ({
+            ...p,
+            id: String(p.id),
+          })) as DashboardPattern[];
           setPatterns(loadedPatterns);
           setJsonInput(JSON.stringify(loadedPatterns, null, 2)); // JSONエディタ用も更新
 
           if (settings.active_pattern_id) {
-            setCurrentPatternId(settings.active_pattern_id);
+            setCurrentPatternId(String(settings.active_pattern_id));
           }
         }
       } catch (error) {
