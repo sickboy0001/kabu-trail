@@ -11,6 +11,7 @@ export type Position = {
   id: string;
   code: string;
   name: string;
+  bucketId: string;
   accountName: string;
   quantity: number;
   entryDate: string;
@@ -24,6 +25,7 @@ export type ClosedTrade = {
   id: string;
   code: string;
   name: string;
+  bucketId?: string;
   accountName: string;
   quantity: number;
   entryDate: string;
@@ -74,6 +76,7 @@ export const useHoldingsData = (userId: string | undefined) => {
       date: string;
       price: number;
       quantity: number;
+      bucketId: string;
       accountName: string;
       stockName: string;
       type: "LONG" | "SHORT";
@@ -148,6 +151,7 @@ export const useHoldingsData = (userId: string | undefined) => {
           id: `${t.id}-merge`,
           code: t.stock_code || "",
           name: t.stock_name || (lots[0]?.stockName ?? ""),
+          bucketId: String(t.account_id),
           accountName: t.account_name || (lots[0]?.accountName ?? ""),
           quantity: reductionQty,
           entryDate: t.transaction_date,
@@ -180,6 +184,7 @@ export const useHoldingsData = (userId: string | undefined) => {
           id: `${t.id}-split`,
           code: t.stock_code || "",
           name: t.stock_name || (lots[0]?.stockName ?? ""),
+          bucketId: String(t.account_id),
           accountName: t.account_name || (lots[0]?.accountName ?? ""),
           quantity: increaseQty,
           entryDate: t.transaction_date,
@@ -195,6 +200,7 @@ export const useHoldingsData = (userId: string | undefined) => {
           date: t.transaction_date,
           price: t.unit_price || 0,
           quantity: t.quantity || 0,
+          bucketId: String(t.account_id),
           accountName: t.account_name || "",
           stockName: t.stock_name || "",
           type: isLongEntry ? "LONG" : "SHORT",
@@ -234,6 +240,7 @@ export const useHoldingsData = (userId: string | undefined) => {
             id: `${t.id}-${lot.date}-${remainingQty}`,
             code: t.stock_code || "",
             name: t.stock_name || lot.stockName,
+            bucketId: lot.bucketId,
             accountName: t.account_name || lot.accountName,
             quantity: consume,
             entryDate: lot.date,
@@ -269,6 +276,7 @@ export const useHoldingsData = (userId: string | undefined) => {
           entryType: string;
           stockName: string;
           accountName: string;
+          bucketId: string;
         }
       > = {};
 
@@ -283,6 +291,7 @@ export const useHoldingsData = (userId: string | undefined) => {
             entryType: lot.entryType,
             stockName: lot.stockName,
             accountName: lot.accountName,
+            bucketId: lot.bucketId,
           };
         }
 
@@ -294,6 +303,7 @@ export const useHoldingsData = (userId: string | undefined) => {
         }
         if (!g.stockName) g.stockName = lot.stockName;
         if (!g.accountName) g.accountName = lot.accountName;
+        if (!g.bucketId) g.bucketId = lot.bucketId;
       });
 
       Object.entries(groups).forEach(([type, g]) => {
@@ -307,6 +317,7 @@ export const useHoldingsData = (userId: string | undefined) => {
           id: `pos-${key}-${type}`,
           code: code,
           name: g.stockName,
+          bucketId: g.bucketId,
           accountName: g.accountName,
           quantity: g.quantity,
           entryDate: g.minDate,

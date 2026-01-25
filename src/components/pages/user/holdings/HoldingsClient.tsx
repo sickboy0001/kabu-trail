@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { User } from "@supabase/supabase-js";
 import { Search, PanelLeft } from "lucide-react";
 import OpenPositionsTable from "./OpenPositionsTable";
 import { useHoldingsData } from "@/hooks/useHoldingsData";
+import AccountFilter from "@/components/Organisms/AccountFilter";
+import { fetchBrokerAccounts, type BrokerAccount } from "@/services/account";
 
 type Props = {
   user: User;
@@ -17,33 +19,16 @@ export type { Position, ClosedTrade } from "@/hooks/useHoldingsData";
 export default function HoldingsClient({ user, onToggleSidebar }: Props) {
   const { positions, closedTrades } = useHoldingsData(user.id);
 
-  const today = new Date();
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(today.getFullYear() - 1);
-
-  const formatDate = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
   const [filterText, setFilterText] = useState("");
-  const [startDate, setStartDate] = useState(formatDate(oneYearAgo));
-  const [endDate, setEndDate] = useState(formatDate(today));
   const [activeTab, setActiveTab] = useState<"open" | "closed">("open");
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [brokerAccounts, setBrokerAccounts] = useState<BrokerAccount[]>([]);
 
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newStartDate = e.target.value;
-    setStartDate(newStartDate);
-
-    if (newStartDate) {
-      const [y, m, d] = newStartDate.split("-").map(Number);
-      const date = new Date(y, m - 1, d);
-      date.setFullYear(date.getFullYear() + 1);
-      setEndDate(formatDate(date));
+  useEffect(() => {
+    if (user.id) {
+      fetchBrokerAccounts(user.id).then(setBrokerAccounts);
     }
-  };
+  }, [user.id]);
 
   // Summary Calculations
   const totalInvestment = positions.reduce(
@@ -63,6 +48,19 @@ export default function HoldingsClient({ user, onToggleSidebar }: Props) {
     (sum, t) => sum + (t.realizedPL ?? 0),
     0,
   );
+
+  const accounts = useMemo(() => {
+    const uniqueAccounts = Array.from(
+      new Set(positions.map((p) => p.accountName)),
+    );
+    return uniqueAccounts.sort((a, b) => {
+      const accA = brokerAccounts.find((acc) => acc.name === a);
+      const accB = brokerAccounts.find((acc) => acc.name === b);
+      const orderA = Number((accA as any)?.sort_order ?? 9999);
+      const orderB = Number((accB as any)?.sort_order ?? 9999);
+      return orderA - orderB || a.localeCompare(b);
+    });
+  }, [positions, brokerAccounts]);
 
   return (
     <div className="space-y-6 w-full">
@@ -89,32 +87,11 @@ export default function HoldingsClient({ user, onToggleSidebar }: Props) {
       {/* Filter */}
       <div className="flex flex-col lg:flex-row justify-between items-end gap-4 border-b border-slate-200 pb-4">
         <div className="flex flex-wrap items-end gap-6 w-full lg:w-auto">
-          {/* 日付範囲指定 */}
-          <div className="flex items-center gap-2">
-            <div>
-              <label className="text-xs text-slate-500 block mb-1 font-medium">
-                Entry日 (開始)
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={handleStartDateChange}
-                className="border border-slate-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-600"
-              />
-            </div>
-            <span className="text-slate-400 mb-1">~</span>
-            <div>
-              <label className="text-xs text-slate-500 block mb-1 font-medium">
-                Entry日 (終了)
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="border border-slate-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-600"
-              />
-            </div>
-          </div>
+          <AccountFilter
+            accounts={accounts}
+            selectedAccounts={selectedAccounts}
+            onChange={setSelectedAccounts}
+          />
         </div>
 
         <div className="relative w-full sm:w-64">
@@ -136,8 +113,7 @@ export default function HoldingsClient({ user, onToggleSidebar }: Props) {
         <OpenPositionsTable
           filterText={filterText}
           positions={positions}
-          startDate={startDate}
-          endDate={endDate}
+          selectedAccounts={selectedAccounts}
         />
       </div>
     </div>

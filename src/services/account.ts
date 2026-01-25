@@ -129,6 +129,7 @@ export type BrokerAccount = {
   category: string | null;
   brokerName?: string;
   feeTemplateName?: string | null;
+  sort_order: number;
 };
 
 export async function fetchBrokerAccounts(
@@ -176,6 +177,7 @@ export async function fetchBrokerAccounts(
     id: account.id,
     name: account.name,
     category: account.category,
+    sort_order: account.sort_order,
     brokerName: account.broker_id
       ? brokersMap.get(account.broker_id)
       : undefined,
@@ -184,10 +186,5 @@ export async function fetchBrokerAccounts(
       : undefined,
   }));
 
-  return formattedAccounts.sort((a, b) => {
-    const aHasCat = !!a.category;
-    const bHasCat = !!b.category;
-    if (aHasCat === bHasCat) return 0;
-    return aHasCat ? 1 : -1;
-  });
+  return formattedAccounts;
 }

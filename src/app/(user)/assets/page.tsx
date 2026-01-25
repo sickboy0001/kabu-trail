@@ -1,4 +1,4 @@
-import AssetsHistoryClient from "@/components/pages/user/assets/AssetsHistoryClient";
+import AssetHistoryClient from "@/components/pages/user/assets/AssetHistoryClient";
 import { createKabuTrailServerClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
 
@@ -13,5 +13,5 @@ export default async function AssetsHistory() {
     redirect("/login");
   }
 
-  return <AssetsHistoryClient user={user} />;
+  return <AssetHistoryClient user={user} />;
 }

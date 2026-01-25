@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import {
   DndContext,
   closestCenter,
@@ -12,13 +12,20 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Undo2, X, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 // 前述の Widget 型を使用
 import { SortableWidgetCard } from "./SortableCard";
+import { AccountTransaction } from "@/hooks/useTransactionData";
+import { saveDashboardSettings } from "@/app/actions/user/dashboardsetting";
+import { Position } from "@/hooks/useHoldingsData";
+import { AssetHistorySettings } from "./parts/AssetHistorySettings";
+import { HoldingsListSettings } from "./parts/HoldingsListSettings";
+import { HoldingsPieSettings } from "./parts/HoldingsPieSettings";
+import { HoldingsTreeMapSettings } from "./parts/HoldingsTreeMapSettings";
+import { ProfitLossHistorySettings } from "./parts/ProfitLossHistorySettings";
 
 type Widget = {
   id: string;
@@ -42,6 +49,9 @@ type Props = {
   currentPatternId: string;
   onSave: (patterns: DashboardPattern[]) => void;
   onCancel: () => void;
+  transactions?: AccountTransaction[];
+  positions?: Position[];
+  showToast: (message: string, type: "success" | "error" | "info") => void;
 };
 
 // 追加可能なウィジェットタイプの定義
@@ -50,8 +60,10 @@ const WIDGET_TYPES = [
   { type: "profit_loss_summary", title: "評価損益合計" },
   { type: "day_over_day", title: "前日比" },
   { type: "asset_history", title: "資産推移" },
+  { type: "profit_loss_history", title: "損益推移" },
   { type: "holdings_pie", title: "ポートフォリオ" },
   { type: "holdings_list", title: "保有銘柄一覧" },
+  { type: "holdings_tree_map", title: "保有銘柄マップ" },
 ]; //stock_list
 
 export default function DashboardSettingClient({
@@ -59,20 +71,20 @@ export default function DashboardSettingClient({
   currentPatternId,
   onSave,
   onCancel,
+  transactions = [],
+  positions = [],
+  showToast,
 }: Props) {
   const [patterns, setPatterns] = useState(initialPatterns);
   const [activeId, setActiveId] = useState(
     currentPatternId || initialPatterns[0]?.id,
   );
+  const [isPending, startTransition] = useTransition();
 
   // 現在編集中のパターンを取得
   const activePattern = patterns.find((p) => p.id === activeId) || patterns[0];
 
   const [selectedType, setSelectedType] = useState(WIDGET_TYPES[0].type);
-  const [removedWidgetData, setRemovedWidgetData] = useState<{
-    widget: any;
-    index: number;
-  } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -80,20 +92,28 @@ export default function DashboardSettingClient({
     }),
   );
 
-  // トーストの自動消去（5秒後）
-  useEffect(() => {
-    if (removedWidgetData) {
-      const timer = setTimeout(() => {
-        setRemovedWidgetData(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [removedWidgetData]);
+  // 口座IDと表示名のリストを生成
+  const accountOptions = React.useMemo(() => {
+    const map = new Map<string, string>();
 
-  // パターン切り替え時にUndo履歴をクリア
-  useEffect(() => {
-    setRemovedWidgetData(null);
-  }, [activeId]);
+    // Positionから情報を収集 (accountNameがある)
+    positions.forEach((p) => {
+      if (p.bucketId) {
+        map.set(p.bucketId, p.accountName || p.bucketId);
+      }
+    });
+
+    // Transactionから情報を収集 (accountNameがない場合はIDを使用)
+    transactions.forEach((t) => {
+      if (t.bucketId && !map.has(t.bucketId)) {
+        map.set(t.bucketId, t.bucketId);
+      }
+    });
+
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+  }, [transactions, positions]);
 
   // アクティブなパターンを更新するヘルパー関数
   const updateActivePattern = (
@@ -139,30 +159,23 @@ export default function DashboardSettingClient({
 
   // ウィジェット削除処理
   const handleRemoveWidget = (id: string) => {
-    const index = activePattern.widgets.findIndex((w) => w.id === id);
-    const widget = activePattern.widgets[index];
-    if (!widget) return;
-
-    // Undo用に保存
-    setRemovedWidgetData({ widget, index });
-
     updateActivePattern((prev) => ({
       ...prev,
       widgets: prev.widgets.filter((w) => w.id !== id),
     }));
   };
 
-  // Undo処理（削除の取り消し）
-  const handleUndoRemove = () => {
-    if (!removedWidgetData) return;
-
-    updateActivePattern((prev) => {
-      const newWidgets = [...prev.widgets];
-      newWidgets.splice(removedWidgetData.index, 0, removedWidgetData.widget);
-      return { ...prev, widgets: newWidgets };
-    });
-
-    setRemovedWidgetData(null);
+  // ウィジェット設定更新処理（口座選択など）
+  const updateWidgetSettings = (
+    id: string,
+    settings: { [key: string]: any },
+  ) => {
+    updateActivePattern((prev) => ({
+      ...prev,
+      widgets: prev.widgets.map((w) =>
+        w.id === id ? { ...w, settings: { ...w.settings, ...settings } } : w,
+      ),
+    }));
   };
 
   // 列数に応じたクラス名を決定するヘルパー
@@ -230,8 +243,20 @@ export default function DashboardSettingClient({
     setActiveId(newPatterns[0].id);
   };
 
+  const handleSaveClick = () => {
+    startTransition(async () => {
+      try {
+        await saveDashboardSettings(patterns, activeId);
+        onSave(patterns);
+      } catch (error) {
+        console.error(error);
+        showToast("保存に失敗しました", "error");
+      }
+    });
+  };
+
   return (
-    <div className="max-w-5xl mx-auto p-6">
+    <div className="max-w-full mx-auto p-6">
       <header className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-xl font-bold">ダッシュボード設定</h1>
@@ -243,10 +268,11 @@ export default function DashboardSettingClient({
               キャンセル
             </button>
             <button
-              onClick={() => onSave(patterns)}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              onClick={handleSaveClick}
+              disabled={isPending}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
             >
-              保存する
+              {isPending ? "保存中..." : "保存する"}
             </button>
           </div>
         </div>
@@ -376,7 +402,53 @@ export default function DashboardSettingClient({
                 widget={widget}
                 onColsChange={updateWidgetCols}
                 onRemove={handleRemoveWidget}
-              />
+              >
+                {(widget.type === "asset_history" ||
+                  widget.type === "profit_loss_history" ||
+                  widget.type === "holdings_pie" ||
+                  widget.type === "holdings_list" ||
+                  widget.type === "holdings_tree_map" ||
+                  widget.type === "tree_map") && (
+                  <div>
+                    {widget.type === "asset_history" && (
+                      <AssetHistorySettings
+                        settings={widget.settings}
+                        onUpdate={(s) => updateWidgetSettings(widget.id, s)}
+                        accountOptions={accountOptions}
+                      />
+                    )}
+                    {widget.type === "profit_loss_history" && (
+                      <ProfitLossHistorySettings
+                        settings={widget.settings}
+                        onUpdate={(s) => updateWidgetSettings(widget.id, s)}
+                        accountOptions={accountOptions}
+                      />
+                    )}
+                    {widget.type === "holdings_pie" && (
+                      <HoldingsPieSettings
+                        settings={widget.settings}
+                        onUpdate={(s) => updateWidgetSettings(widget.id, s)}
+                        accountOptions={accountOptions}
+                      />
+                    )}
+                    {widget.type === "holdings_list" && (
+                      <HoldingsListSettings
+                        settings={widget.settings}
+                        onUpdate={(s) => updateWidgetSettings(widget.id, s)}
+                        accountOptions={accountOptions}
+                      />
+                    )}
+                    {(widget.type === "holdings_tree_map" ||
+                      widget.type === "tree_map") && (
+                      <HoldingsTreeMapSettings
+                        settings={widget.settings}
+                        onUpdate={(s) => updateWidgetSettings(widget.id, s)}
+                        accountOptions={accountOptions}
+                      />
+                    )}
+                  </div>
+                )}
+              </SortableWidgetCard>
             ))}
           </SortableContext>
         </div>
@@ -407,28 +479,6 @@ export default function DashboardSettingClient({
           </button>
         </div>
       </div>
-
-      {/* Undoトースト */}
-      {removedWidgetData && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
-          <div className="bg-slate-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-4">
-            <span className="text-sm">ウィジェットを削除しました</span>
-            <button
-              onClick={handleUndoRemove}
-              className="text-blue-300 hover:text-blue-100 text-sm font-bold flex items-center gap-1"
-            >
-              <Undo2 size={16} />
-              元に戻す
-            </button>
-            <button
-              onClick={() => setRemovedWidgetData(null)}
-              className="text-slate-400 hover:text-white ml-2"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

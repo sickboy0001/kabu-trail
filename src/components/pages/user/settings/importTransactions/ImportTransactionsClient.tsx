@@ -127,6 +127,12 @@ export default function ImportTransactionsClient({
             amount = Math.abs(amount);
           }
 
+          let memo = row.memo || row.name || "";
+          // 証券振替出金の場合は取引区分詳細をメモに追記
+          if (typeStr.includes("証券振替出金")) {
+            memo = memo ? `${typeStr} ${memo}` : typeStr;
+          }
+
           return {
             user_id: userId,
             account_id: Number(selectedAccountId),
@@ -138,7 +144,7 @@ export default function ImportTransactionsClient({
             amount: amount,
             fee: fee || null,
             tax: 0, // CSVから取得できれば設定
-            memo: row.memo || row.name || "",
+            memo: memo,
           };
         })
         .filter((item): item is NonNullable<typeof item> => item !== null);
@@ -217,7 +223,12 @@ export default function ImportTransactionsClient({
             console.warn("Skipped duplicate transaction:", t);
           }
           // 23503 Foreign Key Violation (銘柄コードがマスタにない) の場合
-          else if (e?.code === "23503") {
+          else if (
+            e?.code === "23503" ||
+            e?.details?.includes("is not present in table") ||
+            JSON.stringify(e).includes("23503") ||
+            JSON.stringify(e).includes("foreign key constraint")
+          ) {
             try {
               // stock_code を null にして、メモにコードを追記して再試行
               const retryT = {

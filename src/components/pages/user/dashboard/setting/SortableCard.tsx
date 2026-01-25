@@ -1,6 +1,13 @@
+import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { X } from "lucide-react";
+import { X, Settings } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AssetHistorySkeleton } from "./parts/AssetHistorySettings";
+import { ProfitLossHistorySkeleton } from "./parts/ProfitLossHistorySettings";
+import { HoldingsPieSkeleton } from "./parts/HoldingsPieSettings";
+import { HoldingsListSkeleton } from "./parts/HoldingsListSettings";
+import { TreeMapSkeleton } from "./parts/HoldingsTreeMapSettings";
 
 type Widget = {
   id: string;
@@ -15,9 +22,16 @@ type Props = {
   widget: Widget;
   onColsChange: (id: string, cols: number) => void;
   onRemove: (id: string) => void;
+  children?: React.ReactNode;
 };
 
-export function SortableWidgetCard({ widget, onColsChange, onRemove }: Props) {
+export function SortableWidgetCard({
+  widget,
+  onColsChange,
+  onRemove,
+  children,
+}: Props) {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const {
     attributes,
     listeners,
@@ -32,6 +46,29 @@ export function SortableWidgetCard({ widget, onColsChange, onRemove }: Props) {
     transition,
     gridColumn: `span ${widget.cols}`,
     zIndex: isDragging ? 50 : 1,
+  };
+
+  const renderPreview = () => {
+    switch (widget.type) {
+      case "asset_history":
+        return <AssetHistorySkeleton />;
+      case "profit_loss_history":
+        return <ProfitLossHistorySkeleton settings={widget.settings} />;
+      case "holdings_pie":
+        return <HoldingsPieSkeleton />;
+      case "holdings_list":
+        return <HoldingsListSkeleton />;
+      case "holdings_tree_map":
+      case "tree_map":
+        return <TreeMapSkeleton />;
+      default:
+        return (
+          <div className="flex flex-col gap-2 h-full justify-center px-4">
+            <Skeleton className="h-3 w-1/3" />
+            <Skeleton className="h-6 w-2/3" />
+          </div>
+        );
+    }
   };
 
   return (
@@ -52,6 +89,21 @@ export function SortableWidgetCard({ widget, onColsChange, onRemove }: Props) {
         <span className="text-xs font-bold truncate flex-1 ml-2">
           {widget.title}
         </span>
+
+        {/* 設定トグルボタン */}
+        {children && (
+          <button
+            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+            className={`p-1 rounded transition-colors ${
+              isSettingsOpen
+                ? "bg-blue-100 text-blue-600"
+                : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            }`}
+            title="設定"
+          >
+            <Settings size={14} />
+          </button>
+        )}
 
         {/* サイズ変更セレクトボックス */}
         <select
@@ -76,9 +128,13 @@ export function SortableWidgetCard({ widget, onColsChange, onRemove }: Props) {
         </button>
       </div>
 
-      <div className="h-12 bg-gray-50 rounded flex items-center justify-center text-[10px] text-gray-400">
-        PREVIEW
+      <div className="h-16 bg-gray-50 rounded overflow-hidden border border-gray-100">
+        {renderPreview()}
       </div>
+
+      {children && isSettingsOpen && (
+        <div className="mt-2 border-t pt-2">{children}</div>
+      )}
     </div>
   );
 }

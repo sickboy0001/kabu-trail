@@ -30,17 +30,15 @@ export type ClosedTrade = {
 type Props = {
   filterText: string;
   trades: ClosedTrade[];
-  startDate: string;
-  endDate: string;
   transactions: TransactionWithDetails[];
+  selectedAccounts: string[];
 };
 
 export default function RoundTripTradeTable({
   filterText,
   trades,
-  startDate,
-  endDate,
   transactions,
+  selectedAccounts,
 }: Props) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -57,12 +55,16 @@ export default function RoundTripTradeTable({
   const filtered = useMemo(() => {
     return trades
       .filter((t) => {
+        if (
+          selectedAccounts.length > 0 &&
+          !selectedAccounts.includes(t.accountName)
+        ) {
+          return false;
+        }
         if (!t.code) return false;
         const matchesText =
           t.name.includes(filterText) || t.code.includes(filterText);
         if (!matchesText) return false;
-        if (startDate && t.entryDate < startDate) return false;
-        if (endDate && t.entryDate > endDate) return false;
         return true;
       })
       .map((t) => {
@@ -96,7 +98,7 @@ export default function RoundTripTradeTable({
         if (exitDateDiff !== 0) return exitDateDiff;
         return a.code.localeCompare(b.code);
       });
-  }, [trades, filterText, startDate, endDate]);
+  }, [trades, filterText, selectedAccounts]);
 
   const getCycleHistory = (cycle: ClosedTrade) => {
     return transactions
@@ -170,17 +172,17 @@ export default function RoundTripTradeTable({
                 <TableHead className="p-2 font-medium text-slate-600 whitespace-nowrap">
                   口座
                 </TableHead>
-                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
-                  株数
-                </TableHead>
                 <TableHead className="p-2 font-medium text-slate-600 whitespace-nowrap">
                   取得日
                 </TableHead>
-                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
-                  取得金額
-                </TableHead>
                 <TableHead className="p-2 font-medium text-slate-600 whitespace-nowrap">
                   売却日
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
+                  株数
+                </TableHead>
+                <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
+                  取得金額
                 </TableHead>
                 <TableHead className="p-2 font-medium text-slate-600 text-right whitespace-nowrap">
                   売却金額
@@ -233,6 +235,12 @@ export default function RoundTripTradeTable({
                           {getTradeTypeBadge(item.entryType)}
                         </div>
                       </TableCell>
+                      <TableCell className="p-2 text-slate-600 whitespace-nowrap">
+                        {item.entryDate}
+                      </TableCell>
+                      <TableCell className="p-2 text-slate-600 whitespace-nowrap">
+                        {item.exitDate}
+                      </TableCell>
                       <TableCell className="p-2 text-right whitespace-nowrap font-mono">
                         {item.quantity.toLocaleString()}
                         {item.entryType === "STOCK_SPLIT" && (
@@ -246,9 +254,6 @@ export default function RoundTripTradeTable({
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="p-2 text-slate-600 whitespace-nowrap">
-                        {item.entryDate}
-                      </TableCell>
                       <TableCell className="p-2 text-right whitespace-nowrap">
                         <div className="flex flex-col items-end">
                           <span className="font-mono">
@@ -259,9 +264,6 @@ export default function RoundTripTradeTable({
                             (＠¥{item.entryPrice.toLocaleString()})
                           </span>
                         </div>
-                      </TableCell>
-                      <TableCell className="p-2 text-slate-600 whitespace-nowrap">
-                        {item.exitDate}
                       </TableCell>
                       <TableCell className="p-2 text-right whitespace-nowrap">
                         {item.isNonTradeExit ? (

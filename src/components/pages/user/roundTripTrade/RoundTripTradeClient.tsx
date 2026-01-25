@@ -9,6 +9,8 @@ import {
   type TransactionWithDetails,
 } from "@/services/transactions";
 import { fetchMultipleStockDetails } from "@/lib/stockApi";
+import { fetchBrokerAccounts, type BrokerAccount } from "@/services/account";
+import AccountFilter from "@/components/Organisms/AccountFilter";
 
 type Props = {
   user: User;
@@ -49,6 +51,13 @@ export default function RoundTripTradeClient({ user, onToggleSidebar }: Props) {
     [],
   );
   const [prices, setPrices] = useState<Record<string, number>>({});
+  const [brokerAccounts, setBrokerAccounts] = useState<BrokerAccount[]>([]);
+
+  useEffect(() => {
+    if (user.id) {
+      fetchBrokerAccounts(user.id).then(setBrokerAccounts);
+    }
+  }, [user.id]);
 
   useEffect(() => {
     const loadTransactions = async () => {
@@ -172,20 +181,32 @@ export default function RoundTripTradeClient({ user, onToggleSidebar }: Props) {
             ? 0
             : plPerShare * consume;
 
-          closed.push({
-            id: `${t.id}-${lot.date}-${remainingQty}`,
-            code: t.stock_code || "",
-            name: t.stock_name || lot.stockName,
-            accountName: t.account_name || lot.accountName,
-            quantity: consume,
-            entryDate: lot.date,
-            entryPrice: lot.price,
-            exitDate: t.transaction_date,
-            exitPrice: exitPrice,
-            realizedPL: realizedPL,
-            exitType: t.transaction_type,
-            entryType: lot.entryType,
-          });
+          const isMerge = (t.transaction_type as string) === "STOCK_MERGE";
+
+          if (!isMerge) {
+            closed.push({
+              id: `${t.id}-${lot.date}-${remainingQty}`,
+              code: t.stock_code || "",
+              name: t.stock_name || lot.stockName,
+              accountName: t.account_name || lot.accountName,
+              quantity: consume,
+              entryDate: lot.date,
+              entryPrice: lot.price,
+              exitDate: t.transaction_date,
+              exitPrice: exitPrice,
+              realizedPL: realizedPL,
+              exitType: t.transaction_type,
+              entryType: lot.entryType,
+            });
+          }
+
+          if (isMerge) {
+            const totalCost = lot.price * lot.quantity;
+            const newQuantity = lot.quantity - consume;
+            if (newQuantity > 0) {
+              lot.price = totalCost / newQuantity;
+            }
+          }
 
           lot.quantity -= consume;
           remainingQty -= consume;
@@ -318,33 +339,21 @@ export default function RoundTripTradeClient({ user, onToggleSidebar }: Props) {
     });
   }, [basePositions, prices]);
 
-  const today = new Date();
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(today.getFullYear() - 1);
-
-  const formatDate = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
   const [filterText, setFilterText] = useState("");
-  const [startDate, setStartDate] = useState(formatDate(oneYearAgo));
-  const [endDate, setEndDate] = useState(formatDate(today));
-  const [viewMode, setViewMode] = useState<"grouped" | "flat">("flat");
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
 
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newStartDate = e.target.value;
-    setStartDate(newStartDate);
-
-    if (newStartDate) {
-      const [y, m, d] = newStartDate.split("-").map(Number);
-      const date = new Date(y, m - 1, d);
-      date.setFullYear(date.getFullYear() + 1);
-      setEndDate(formatDate(date));
-    }
-  };
+  const accounts = useMemo(() => {
+    const uniqueAccounts = Array.from(
+      new Set(tradeCycles.map((t) => t.accountName)),
+    );
+    return uniqueAccounts.sort((a, b) => {
+      const accA = brokerAccounts.find((acc) => acc.name === a);
+      const accB = brokerAccounts.find((acc) => acc.name === b);
+      const orderA = Number((accA as any)?.sort_order ?? 9999);
+      const orderB = Number((accB as any)?.sort_order ?? 9999);
+      return orderA - orderB || a.localeCompare(b);
+    });
+  }, [tradeCycles, brokerAccounts]);
 
   // Summary Calculations
   const totalInvestment = positions.reduce(
@@ -390,32 +399,11 @@ export default function RoundTripTradeClient({ user, onToggleSidebar }: Props) {
       {/* Filter */}
       <div className="flex flex-col lg:flex-row justify-between items-end gap-4 border-b border-slate-200 pb-4">
         <div className="flex flex-wrap items-end gap-6 w-full lg:w-auto">
-          {/* 日付範囲指定 */}
-          <div className="flex items-center gap-2">
-            <div>
-              <label className="text-xs text-slate-500 block mb-1 font-medium">
-                Entry日 (開始)
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={handleStartDateChange}
-                className="border border-slate-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-600"
-              />
-            </div>
-            <span className="text-slate-400 mb-1">~</span>
-            <div>
-              <label className="text-xs text-slate-500 block mb-1 font-medium">
-                Entry日 (終了)
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="border border-slate-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-600"
-              />
-            </div>
-          </div>
+          <AccountFilter
+            accounts={accounts}
+            selectedAccounts={selectedAccounts}
+            onChange={setSelectedAccounts}
+          />
         </div>
 
         <div className="flex items-center gap-3 w-full lg:w-auto">
@@ -437,9 +425,8 @@ export default function RoundTripTradeClient({ user, onToggleSidebar }: Props) {
       <RoundTripTradeTable
         filterText={filterText}
         trades={tradeCycles}
-        startDate={startDate}
-        endDate={endDate}
         transactions={transactions}
+        selectedAccounts={selectedAccounts}
       />
     </div>
   );

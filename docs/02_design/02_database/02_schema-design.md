@@ -36,6 +36,8 @@
         - [この構造が「限界」を解決する仕組み](#この構造が限界を解決する仕組み)
         - [運用のメリット](#運用のメリット)
         - [実装のアドバイス](#実装のアドバイス)
+      - [7 ダッシュボード](#7-ダッシュボード)
+        - [7.1 account\_dashboard\_settings](#71-account_dashboard_settings)
 
 
 ## 2. 概要
@@ -76,6 +78,12 @@ erDiagram
     spt_user ||--o{ spt_stock_view_history : "logs"
     spt_user ||--o{ spt_notifications : "notifies"
     spt_user ||--o{ observation_logs : "records"
+
+    %% 設定
+    spt_user ||--|| account_dashboard_settings : "configures"
+
+    %% 設定
+    spt_user ||--|| account_dashboard_settings : "configures"
 
 ```
 
@@ -390,3 +398,18 @@ erDiagram
 `account_transactions` 側に、どのスナップショットに含まれたかを示す `snapshot_id`（FK）を持たせる必要はありません。単に **「日付（date）」** をキーにして、スナップショットの日付より新しいものだけを履歴から引っ張る、というロジックにするのが最もシンプルでデータ量も抑えられます。
 
 この「締日時点の金額」を保存するタイミングは、ユーザーがデータをインポートした時（あるいは月次バッチなど）に自動生成するイメージでしょうか？
+
+
+#### 7 ダッシュボード
+この設計では、1つのレコード内に複数の「レイアウトパターン」を保持し、それぞれにウィジェットの配置（順序・サイズ）や固有の設定（期間、対象バケット等）を格納する構成にしています。
+
+##### 7.1 account_dashboard_settings
+
+
+| カラム名 | 型 | 説明 |
+| --- | --- | --- |
+| **id** | bigint | NO | PK。 |
+| **user_id** | uuid | FK。`auth.users.id` への参照 (Unique) |
+| **active_pattern_id** | text | 現在適用中のパターンID（前回閲覧時の記憶用） |
+| **patterns** | jsonb | 全パターンの詳細データ（後述の構造） |
+| **updated_at** | timestamp | 最終更新日時 |

@@ -42,8 +42,17 @@ export function HoldingsPie({ widget, positions = [] }: Props) {
   const data = useMemo(() => {
     if (!positions || positions.length === 0) return [];
 
+    // 設定された口座でフィルタリング
+    const targetBuckets = widget.settings.targetBuckets as string[] | undefined;
+    const filteredPositions =
+      targetBuckets && targetBuckets.length > 0
+        ? positions.filter(
+            (p) => p.bucketId && targetBuckets.includes(p.bucketId),
+          )
+        : positions;
+
     // 銘柄ごとに集計
-    const aggregated = positions.reduce(
+    const aggregated = filteredPositions.reduce(
       (acc, pos) => {
         const marketValue = pos.currentPrice * pos.quantity;
         if (!acc[pos.name]) {
@@ -63,58 +72,68 @@ export function HoldingsPie({ widget, positions = [] }: Props) {
 
   if (data.length === 0) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-        データなし
+      <div className="w-full h-full flex flex-col">
+        <h3 className="text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
+          {widget.title}
+        </h3>
+        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+          データなし
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full min-h-[250px] p-2">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={80}
-            paddingAngle={2}
-            dataKey="value"
-          >
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={COLORS[index % COLORS.length]}
-                stroke="none"
-              />
-            ))}
-          </Pie>
-          <Tooltip
-            formatter={(value: any, name: any) => [
-              `${Number(value).toLocaleString()}円`,
-              name,
-            ]}
-            contentStyle={{
-              backgroundColor: "#1f2937",
-              border: "none",
-              borderRadius: "6px",
-              color: "#fff",
-              fontSize: "12px",
-              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-            }}
-            itemStyle={{ color: "#fff" }}
-          />
-          <Legend
-            verticalAlign="bottom"
-            height={36}
-            iconType="circle"
-            formatter={(value) => (
-              <span className="text-xs text-gray-600 ml-1">{value}</span>
-            )}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+    <div className="w-full h-full min-h-[250px] flex flex-col">
+      <h3 className="text-sm font-bold text-gray-500 mb-2 border-b border-gray-100 pb-1">
+        {widget.title}
+      </h3>
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={80}
+              paddingAngle={2}
+              dataKey="value"
+            >
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                  stroke="none"
+                />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={(value: any, name: any) => [
+                `${Number(value).toLocaleString()}円`,
+                name,
+              ]}
+              contentStyle={{
+                backgroundColor: "#1f2937",
+                border: "none",
+                borderRadius: "6px",
+                color: "#fff",
+                fontSize: "12px",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+              }}
+              itemStyle={{ color: "#fff" }}
+            />
+            <Legend
+              verticalAlign="bottom"
+              height={36}
+              iconType="circle"
+              formatter={(value) => (
+                <span className="text-xs text-gray-600 ml-1">{value}</span>
+              )}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

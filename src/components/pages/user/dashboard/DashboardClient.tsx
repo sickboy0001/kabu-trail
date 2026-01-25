@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardSettingClient from "./setting/DashboardSettings";
 import { User } from "@supabase/supabase-js";
 import { PlaceholderWidget } from "./PlaceholderWidget";
 import { useHoldingsData } from "@/hooks/useHoldingsData";
+import { useTransactionData } from "@/hooks/useTransactionData";
+import { getDashboardSettings } from "@/app/actions/user/dashboardsetting";
+import Toast from "@/components/ui/Toast";
+import { DEFAULT_PATTERN } from "./defaultPattern";
 
 // --- 型定義 ---
 export type WidgetSettings = {
@@ -23,7 +27,7 @@ export type Widget = {
   settings: WidgetSettings;
 };
 
-type DashboardPattern = {
+export type DashboardPattern = {
   id: string;
   name: string;
   is_default: boolean;
@@ -31,90 +35,7 @@ type DashboardPattern = {
   widgets: Widget[];
 };
 
-// --- デフォルトのJSON構造（初期表示用） ---
-const DEFAULT_PATTERN: DashboardPattern = {
-  id: "pattern_standard",
-  name: "標準レイアウト",
-  is_default: true,
-  columns: 6,
-  widgets: [
-    {
-      id: "w1",
-      type: "asset_summary",
-      title: "資産情報",
-      cols: 2,
-      order: 1,
-      settings: {},
-    },
-    {
-      id: "w2",
-      type: "profit_loss_summary",
-      title: "評価損益合計",
-      cols: 2,
-      order: 2,
-      settings: {},
-    },
-    {
-      id: "w3",
-      type: "day_over_day",
-      title: "前日比",
-      cols: 2,
-      order: 3,
-      settings: {},
-    },
-    {
-      id: "w4",
-      type: "asset_history",
-      title: "資産推移（1年）",
-      cols: 4,
-      order: 4,
-      settings: { period: "1y" },
-    },
-    {
-      id: "w5",
-      type: "holdings_pie",
-      title: "ポートフォリオ",
-      cols: 2,
-      order: 5,
-      settings: {},
-    },
-    {
-      id: "w6",
-      type: "holdings_list",
-      title: "保有銘柄一覧",
-      cols: 6,
-      order: 6,
-      settings: {},
-    },
-  ],
-};
-
-const PATTERN_SIMPLE: DashboardPattern = {
-  id: "pattern_simple",
-  name: "シンプルレイアウト",
-  is_default: false,
-  columns: 2,
-  widgets: [
-    {
-      id: "w1",
-      type: "asset_summary",
-      title: "資産情報",
-      cols: 2,
-      order: 1,
-      settings: {},
-    },
-    {
-      id: "w4",
-      type: "asset_history",
-      title: "資産推移（1年）",
-      cols: 2,
-      order: 2,
-      settings: { period: "1y" },
-    },
-  ],
-};
-
-const INITIAL_PATTERNS = [DEFAULT_PATTERN, PATTERN_SIMPLE];
+const INITIAL_PATTERNS = [DEFAULT_PATTERN];
 
 type Props = {
   user: User;
@@ -126,8 +47,37 @@ const DashboardClient = ({ user }: Props) => {
   const [patterns, setPatterns] =
     useState<DashboardPattern[]>(INITIAL_PATTERNS);
 
+  // 初期表示時にDBから設定をロード
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await getDashboardSettings();
+        if (
+          settings &&
+          settings.patterns &&
+          Array.isArray(settings.patterns) &&
+          settings.patterns.length > 0
+        ) {
+          const loadedPatterns = settings.patterns as DashboardPattern[];
+          setPatterns(loadedPatterns);
+          setJsonInput(JSON.stringify(loadedPatterns, null, 2)); // JSONエディタ用も更新
+
+          if (settings.active_pattern_id) {
+            setCurrentPatternId(settings.active_pattern_id);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard settings:", error);
+      }
+    };
+    loadSettings();
+  }, []);
+
   // 保有銘柄データの取得
   const { positions, closedTrades } = useHoldingsData(user.id);
+
+  // 資産推移データの取得
+  const { transactions } = useTransactionData(user.id);
 
   const initialPatternId =
     INITIAL_PATTERNS.find((p) => p.is_default)?.id || INITIAL_PATTERNS[0].id;
@@ -143,6 +93,20 @@ const DashboardClient = ({ user }: Props) => {
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [isSettingMode, setIsSettingMode] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [toastOpen, setToastOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "info">(
+    "info",
+  );
+
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "info" = "info",
+  ) => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastOpen(true);
+  };
 
   const handleApplyJson = () => {
     try {
@@ -201,20 +165,10 @@ const DashboardClient = ({ user }: Props) => {
       setCurrentPatternId(newPatterns[0].id);
     }
     setIsSettingMode(false);
+    showToast("設定を保存しました", "success");
   };
 
-  if (isSettingMode) {
-    return (
-      <DashboardSettingClient
-        initialPatterns={patterns}
-        currentPatternId={currentPatternId}
-        onSave={handleSaveSettings}
-        onCancel={() => setIsSettingMode(false)}
-      />
-    );
-  }
-
-  return (
+  const mainContent = (
     <div className="bg-gray-50 min-h-screen p-6">
       {/* JSON編集エリア */}
       {showJsonEditor && (
@@ -240,7 +194,7 @@ const DashboardClient = ({ user }: Props) => {
       )}
 
       {/* ヘッダーエリア */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 md:gap-0">
         <div>
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold text-gray-800">
@@ -262,7 +216,7 @@ const DashboardClient = ({ user }: Props) => {
             ダッシュボードの概要を表示しています
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowDebugInfo(!showDebugInfo)}
             className={`px-4 py-2 border rounded shadow-sm transition-colors ${showDebugInfo ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white hover:bg-gray-50"}`}
@@ -310,11 +264,36 @@ const DashboardClient = ({ user }: Props) => {
                 showDebugInfo={showDebugInfo}
                 positions={positions}
                 closedTrades={closedTrades}
+                transactions={transactions}
               />
             </div>
           ))}
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {isSettingMode ? (
+        <DashboardSettingClient
+          initialPatterns={patterns}
+          currentPatternId={currentPatternId}
+          onSave={handleSaveSettings}
+          onCancel={() => setIsSettingMode(false)}
+          transactions={transactions}
+          positions={positions}
+          showToast={showToast}
+        />
+      ) : (
+        mainContent
+      )}
+      <Toast
+        open={toastOpen}
+        message={toastMessage}
+        type={toastType}
+        onClose={() => setToastOpen(false)}
+      />
+    </>
   );
 };
 

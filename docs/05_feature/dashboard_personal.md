@@ -646,117 +646,11 @@ export default DashboardClient;
 
 ---
 
-### この構成のポイント
-
-1. **Gridの制御**:
-`grid-cols-6` を親に持ち、子要素の `gridColumn: span X` で幅を決定しています。これにより、「1列（小）」「3列（中）」「6列（全幅）」といった柔軟なレイアウトが、JSONの `cols` パラメータだけで操作可能です。
-2. **Order（順序）の制御**:
-`.sort((a, b) => a.order - b.order)` を入れることで、JSON内の記述順に依存せず、ユーザーが指定した順序で並び替える準備ができています。
-3. **拡張性**:
-`PlaceholderWidget` の部分を、将来的に `switch(widget.type)` を使った `WidgetRenderer` コンポーネントに差し替えるだけで、中身を本物のグラフやテーブルに置き換えられます。
-
----
-
-### 次のステップへの提案
-
-この静的な画面が表示できたら、次は**「各ウィジェットの中身の実装」**に進むのが良いかと思います。
-
-特に重要なのは以下のどれでしょうか？
-
-* **A: 資産推移・損益推移のグラフ表示**（Rechartsを使った実装例）
-* **B: 保有銘柄一覧のテーブル実装**（スクロールや前日比のカラーリング）
-* **C: 設定画面（DashboardSettingClient）での並び替え・サイズ変更UI**
-
-どれから詳細を確認したいですか？
-
-設定画面（`DashboardSettingClient`）では、ユーザーが直感的に「どの項目を」「どのくらいの大きさで」「どの順番に」並べるかを操作できる必要があります。
-
-ここでは、実用性の高い **`dnd-kit`**（Reactで最もモダンなドラッグ＆ドロップライブラリ）を使用した実装イメージを提案します。
-
----
 
 ### 1. 設定画面の全体構成案
 
 設定画面では、左側に「現在のレイアウトプレビュー（並び替え可能）」、右側に「ウィジェットの追加や詳細設定」を配置する構成が一般的です。
 
-```tsx
-import React, { useState } from 'react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  rectSortingStrategy,
-} from '@dnd-kit/sortable';
-
-// 前述の Widget 型を使用
-import { SortableWidgetCard } from './components/SortableWidgetCard';
-
-export default function DashboardSettingClient({ initialPattern }) {
-  const [pattern, setPattern] = useState(initialPattern);
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  // 並び替え完了時の処理
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (active.id !== over.id) {
-      setPattern((prev) => {
-        const oldIndex = prev.widgets.findIndex((w) => w.id === active.id);
-        const newIndex = prev.widgets.findIndex((w) => w.id === over.id);
-        const newWidgets = arrayMove(prev.widgets, oldIndex, newIndex).map((w, i) => ({
-          ...w,
-          order: i + 1, // 順序を再採番
-        }));
-        return { ...prev, widgets: newWidgets };
-      });
-    }
-  };
-
-  // サイズ（列数）変更の処理
-  const updateWidgetCols = (id, newCols) => {
-    setPattern((prev) => ({
-      ...prev,
-      widgets: prev.widgets.map((w) => (w.id === id ? { ...w, cols: newCols } : w)),
-    }));
-  };
-
-  return (
-    <div className="max-w-5xl mx-auto p-6">
-      <header className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">ダッシュボード設定: {pattern.name}</h1>
-        <button className="bg-green-600 text-white px-4 py-2 rounded">保存する</button>
-      </header>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        {/* 6列グリッドのプレビュー */}
-        <div className="grid grid-cols-6 gap-4 bg-gray-100 p-4 rounded-xl border-2 border-dashed border-gray-300">
-          <SortableContext items={pattern.widgets.map(w => w.id)} strategy={rectSortingStrategy}>
-            {pattern.widgets.map((widget) => (
-              <SortableWidgetCard 
-                key={widget.id} 
-                widget={widget} 
-                onColsChange={updateWidgetCols}
-              />
-            ))}
-          </SortableContext>
-        </div>
-      </DndContext>
-    </div>
-  );
-}
-
-```
 
 ---
 
@@ -833,3 +727,26 @@ export function SortableWidgetCard({ widget, onColsChange }) {
 次は、これらの設定を **「Supabase の JSONB カラムへ保存し、ページ遷移時に復元するロジック（API連携）」** について詳しく解説しましょうか？
 
 なお、各種アプリのすべての機能を使用するには、[Gemini アプリ アクティビティ](https://myactivity.google.com/product/gemini)を有効にする必要があります。
+
+
+ご提示いただいた要件に基づき、柔軟なカスタマイズ性とパターンの切り替えを両立させるための `account_dashboard_settings` テーブルデザインおよびJSON構造案をまとめました。
+
+
+---
+
+### 1. Supabase テーブル定義案
+
+#### account_dashboard_settings
+
+この設計では、1つのレコード内に複数の「レイアウトパターン」を保持し、それぞれにウィジェットの配置（順序・サイズ）や固有の設定（期間、対象バケット等）を格納する構成にしています。
+
+| カラム名 | 型 | 説明 |
+| --- | --- | --- |
+| **id** | uuid | PK。自動生成 |
+| **user_id** | uuid | FK。`auth.users.id` への参照 (Unique) |
+| **active_pattern_id** | text | 現在適用中のパターンID（前回閲覧時の記憶用） |
+| **patterns** | jsonb | 全パターンの詳細データ（後述の構造） |
+| **updated_at** | timestamp | 最終更新日時 |
+
+---
+

@@ -8,25 +8,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Position } from "./HoldingsClient";
+import { Position } from "@/hooks/useHoldingsData";
 
 type Props = {
-  filterText: string;
+  filterText?: string;
   positions: Position[];
-  startDate: string;
-  endDate: string;
+  selectedAccounts?: string[];
 };
 
 export default function OpenPositionsTable({
-  filterText,
+  filterText = "",
   positions,
-  startDate,
-  endDate,
+  selectedAccounts = [],
 }: Props) {
+  const getDaysDiff = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - date.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
   const filtered = useMemo(() => {
-    return positions.filter((p) => {
-      if (startDate && p.entryDate < startDate) return false;
-      if (endDate && p.entryDate > endDate) return false;
+    const result = positions.filter((p) => {
+      if (
+        selectedAccounts.length > 0 &&
+        !selectedAccounts.includes(p.accountName)
+      ) {
+        return false;
+      }
       if (filterText) {
         const lower = filterText.toLowerCase();
         return (
@@ -36,7 +45,14 @@ export default function OpenPositionsTable({
       }
       return true;
     });
-  }, [positions, filterText, startDate, endDate]);
+
+    // 取得日が新しい順（降順）にソート
+    return result.sort((a, b) => {
+      if (a.entryDate > b.entryDate) return -1;
+      if (a.entryDate < b.entryDate) return 1;
+      return 0;
+    });
+  }, [positions, filterText, selectedAccounts]);
 
   if (filtered.length === 0) {
     return (
@@ -55,11 +71,18 @@ export default function OpenPositionsTable({
             <TableRow>
               <TableHead className="whitespace-nowrap">銘柄</TableHead>
               <TableHead className="whitespace-nowrap">口座</TableHead>
+              <TableHead className="whitespace-nowrap">取得日</TableHead>
               <TableHead className="whitespace-nowrap text-right">
                 数量
               </TableHead>
               <TableHead className="whitespace-nowrap text-right">
                 取得単価
+              </TableHead>
+              <TableHead className="whitespace-nowrap text-right">
+                取得金額
+              </TableHead>
+              <TableHead className="whitespace-nowrap text-right">
+                保有期間
               </TableHead>
               <TableHead className="whitespace-nowrap text-right">
                 現在値
@@ -70,12 +93,13 @@ export default function OpenPositionsTable({
               <TableHead className="whitespace-nowrap text-right">
                 評価損益
               </TableHead>
-              <TableHead className="whitespace-nowrap">取得日</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.map((pos) => {
               const marketValue = pos.currentPrice * pos.quantity;
+              const purchaseAmount = pos.entryPrice * pos.quantity;
+              const holdingPeriod = getDaysDiff(pos.entryDate);
               const pl = pos.valuationPL ?? 0;
               const plPercent =
                 pos.entryPrice * pos.quantity !== 0
@@ -85,7 +109,7 @@ export default function OpenPositionsTable({
 
               return (
                 <TableRow key={pos.id} className="hover:bg-slate-50">
-                  <TableCell>
+                  <TableCell className="py-2">
                     <Link
                       href={`/stock?code=${pos.code}`}
                       className="font-bold text-slate-800 hover:text-blue-600 block"
@@ -94,20 +118,29 @@ export default function OpenPositionsTable({
                     </Link>
                     <span className="text-xs text-slate-500">{pos.code}</span>
                   </TableCell>
-                  <TableCell>{pos.accountName}</TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="py-2">{pos.accountName}</TableCell>
+                  <TableCell className="text-slate-500 text-xs py-2">
+                    {pos.entryDate}
+                  </TableCell>
+                  <TableCell className="text-right font-mono py-2">
                     {pos.quantity.toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-right font-mono py-2">
                     {pos.entryPrice.toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-right font-mono py-2">
+                    {purchaseAmount.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-slate-600 py-2">
+                    {holdingPeriod}日
+                  </TableCell>
+                  <TableCell className="text-right font-mono py-2">
                     {pos.currentPrice.toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-right font-mono py-2">
                     {marketValue.toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right py-2">
                     <div
                       className={`font-bold ${isPositive ? "text-blue-600" : "text-red-600"}`}
                     >
@@ -121,9 +154,6 @@ export default function OpenPositionsTable({
                       {plPercent.toFixed(2)}%)
                     </div>
                   </TableCell>
-                  <TableCell className="text-slate-500 text-xs">
-                    {pos.entryDate}
-                  </TableCell>
                 </TableRow>
               );
             })}
@@ -135,6 +165,8 @@ export default function OpenPositionsTable({
       <div className="md:hidden space-y-3">
         {filtered.map((pos) => {
           const marketValue = pos.currentPrice * pos.quantity;
+          const purchaseAmount = pos.entryPrice * pos.quantity;
+          const holdingPeriod = getDaysDiff(pos.entryDate);
           const pl = pos.valuationPL ?? 0;
           const plPercent =
             pos.entryPrice * pos.quantity !== 0
@@ -191,12 +223,18 @@ export default function OpenPositionsTable({
                   <span>{pos.currentPrice.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-slate-400">取得金額</span>
+                  <span>{purchaseAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-slate-400">評価額</span>
                   <span>{marketValue.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between col-span-2 pt-1 mt-1 border-t border-slate-50">
                   <span className="text-slate-400">取得日</span>
-                  <span>{pos.entryDate}</span>
+                  <span>
+                    {pos.entryDate} ({holdingPeriod}日目)
+                  </span>
                 </div>
               </div>
             </div>

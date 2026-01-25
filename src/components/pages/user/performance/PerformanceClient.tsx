@@ -242,13 +242,10 @@ export default function PerformanceClient({ user }: Props) {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-slate-800">損益推移</h1>
       </div>
-      <div>
-        <p>こちらは**「投資判断の成否」**を分析するのに適しています。 </p>
-        <p>勝敗の可視化:</p>
-        testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest
-        右端の「売買損益(円)」を見ることで、住友林業（+121,236円）の成功と、日本製鉄（-14,982円）の損切りがはっきり分かります。
-        <p>手数料の把握:</p>
-        決済ごとに数千円単位の手数料が発生していることが記録されており、薄利多売になりすぎていないかのチェックが可能です。
+      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+        <p className="text-yellow-800 text-sm">
+          ※このページは現在実装中です。表示されているデータは開発用のサンプルデータです。
+        </p>
       </div>
 
       {/* PC版: テーブル表示 (md以上で表示) */}
@@ -310,8 +307,8 @@ export default function PerformanceClient({ user }: Props) {
                       t.profit.startsWith("+")
                         ? "text-green-600"
                         : t.profit.startsWith("-")
-                        ? "text-red-600"
-                        : ""
+                          ? "text-red-600"
+                          : ""
                     }
                   >
                     {t.profit}
@@ -321,8 +318,8 @@ export default function PerformanceClient({ user }: Props) {
                       t.returnRate.startsWith("+")
                         ? "text-green-600"
                         : t.returnRate.startsWith("-")
-                        ? "text-red-600"
-                        : "text-slate-500"
+                          ? "text-red-600"
+                          : "text-slate-500"
                     }`}
                   >
                     {t.returnRate}
@@ -333,8 +330,8 @@ export default function PerformanceClient({ user }: Props) {
                     t.afterTaxProfit.startsWith("+")
                       ? "text-green-600"
                       : t.afterTaxProfit.startsWith("-")
-                      ? "text-red-600"
-                      : ""
+                        ? "text-red-600"
+                        : ""
                   }`}
                 >
                   {t.afterTaxProfit}
