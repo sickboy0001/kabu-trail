@@ -216,7 +216,7 @@ const DashboardClient = ({ user }: Props) => {
   };
 
   const mainContent = (
-    <div className="bg-gray-50 min-h-screen p-4">
+    <div className="bg-gray-50 min-h-screen p-1 md:p-4">
       {/* JSON編集エリア */}
       {isAdmin && showJsonEditor && (
         <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -300,7 +300,7 @@ const DashboardClient = ({ user }: Props) => {
           gap-4 でウィジェット間の隙間を確保。
       */}
       <div
-        className={`grid grid-cols-3 gap-2 md:gap-4 ${getGridClass(currentPattern.columns || 6)}`}
+        className={`grid grid-cols-3 gap-1 md:gap-4 ${getGridClass(currentPattern.columns || 6)}`}
       >
         {currentPattern.widgets
           .sort((a, b) => a.order - b.order)

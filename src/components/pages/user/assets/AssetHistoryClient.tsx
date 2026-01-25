@@ -27,8 +27,6 @@ type Props = {
 export default function AssetHistoryClient({ user }: Props) {
   const { transactions } = useTransactionData(user.id);
 
-  console.log("AssetHistoryClient transactions:", transactions);
-
   const [brokerAccounts, setBrokerAccounts] = useState<BrokerAccount[]>([]);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [filterText, setFilterText] = useState("");
@@ -195,8 +193,6 @@ export default function AssetHistoryClient({ user }: Props) {
     selectedYear,
     selectedMonth,
   ]);
-
-  console.log("filteredTransactions:", filteredTransactions);
 
   let runningBalance = 0;
   const displayHistory = filteredTransactions.map((item: any) => {

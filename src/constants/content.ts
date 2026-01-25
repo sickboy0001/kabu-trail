@@ -20,3 +20,21 @@ export const PL_PERCENT_TOOLTIP_MD = `
 
 ※投資額合計が0の場合は、0%として扱われます。
 `;
+
+export const REALIZED_PL_DESC = `
+**実現損益（確定損益）**
+
+売却や決済を行って確定した損益の合計です。
+`;
+
+export const REALIZED_PL_TOOLTIP_MD = `
+**実現損益（確定損益）**
+
+売却や決済を行って確定した損益の合計です。
+`;
+
+export const TOTAL_PL_TOOLTIP_MD = `
+**総合損益**
+
+保有中のポジションからの評価損益と、過去に確定した実現損益を合算したものです。
+`;

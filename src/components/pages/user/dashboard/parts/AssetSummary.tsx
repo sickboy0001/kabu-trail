@@ -77,7 +77,7 @@ export function AssetSummary({
                 </TooltipContent>
               </Tooltip>
             </div>
-            <div className="text-2xl font-bold text-gray-800 tracking-tight">
+            <div className="text-sm sm:text-2xl font-bold text-gray-800 tracking-tight">
               ¥{currentMarketValue.toLocaleString()}
             </div>
           </div>
