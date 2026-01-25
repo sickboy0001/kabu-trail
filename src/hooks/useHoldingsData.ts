@@ -348,7 +348,7 @@ export const useHoldingsData = (userId: string | undefined) => {
           { current: number; previous?: number }
         > = {};
         Object.entries(details).forEach(([code, d]) => {
-          if (d) {
+          if (d && d.current_price != null) {
             // デバッグ用: 最初の1件のデータ構造をログ出力（APIレスポンス確認用）
             if (Object.keys(newPrices).length === 0) {
               console.log(
@@ -360,9 +360,10 @@ export const useHoldingsData = (userId: string | undefined) => {
               current: d.current_price,
               // プロパティ名の揺らぎに対応 (snake_case, camelCase, PascalCase)
               previous:
-                d.previous_close ??
+                (d as any).prev_close ??
                 (d as any).previousClose ??
-                (d as any).PreviousClose,
+                (d as any).PreviousClose ??
+                undefined,
             };
           }
         });
