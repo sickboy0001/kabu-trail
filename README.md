@@ -56,10 +56,32 @@
 ## 📂 ディレクトリ構成
 
 - `src/app`: 画面（Pages）およびルートハンドラー
-  - `(auth)`: ログイン・サインアップ関連
-  - `(user)`: ダッシュボード・取引管理など認証後ページ
-- `src/components`: 再利用可能なUIコンポーネント
-- `src/lib`: Supabaseクライアントなどの共通ロジック
+  - globals.css
+  - layout.tsx
+  - pages.tsx
+  - `(user)`: 個人認証済みのページ
+    - dashboard/:ダッシュボード
+      - page.tsx: 入り口のサーバーコンポーネント
+    - logs/:習慣化の記録の確認
+      - page.tsx: 入り口のサーバーコンポーネント
+    - items/:習慣化のマスタの確認
+      - page.tsx: 入り口のサーバーコンポーネント
+- `src/components/`: 再利用可能なUIコンポーネント
+  - layout/:Atomicデザインのlayoutでのコンポーネント
+  - organisms/:Atomicデザインのorganismsでのコンポーネント
+  - pages/:各ページから呼び出させる場所
+  - ui/:shaduiのコンポーネントの保存
+- `src/constants/:　定数の情報をもつ。解説コメントなども
+- `src/service/`: ビジネスロジック
+- `src/lib/`: Supabaseクライアントなどの共通ロジック
+  - util.ts
+  - utilNumber.ts
+  - utilDate.ts
+  - supabase/:Supabase周り
+    - client.ts: createBrowserClient
+    - supbabase.ts:reateClient(supabaseUrl, supabaseAnonKey);
+    - supbabaseadmin:createxxxxAdminClient
+    - supabaseServer:supabaseAnonKeyからユーザーゲット
 - `src/middleware.ts`: 認証状態に基づいたリダイレクト制御
 
 ## 🛠 セットアップと実行
@@ -167,3 +189,11 @@ pnpm dev
 # or
 bun dev
 ```
+
+
+## 履歴
+
+- 2026/1/24 
+  - 主な機能対応完了～
+- 2026/1/2 
+  - 株について、学んでみたい、自分用のツール欲しいと思った
